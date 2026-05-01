@@ -216,22 +216,21 @@ class Manager:
     #### Downloads
 
     def github_ver(
-        self, repo: str, re_pattern: str, api_url: str = "https://api.github.com"
+        self, repo: str, re_pattern: Optional[str] = None, api_url: str = "https://api.github.com"
     ) -> str:
         cmd = ["curl", "-sL", f"{api_url}/repos/{repo}/releases/latest"]
         proc = self.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
             return ""
 
-        try:
-            data = json.loads(proc.stdout)
-            tag = data.get("tag_name", "")
-            match = re.search(re_pattern, tag)
-            if match and match.groups():
-                return match.group(1)
-            return ""
-        except (json.JSONDecodeError, IndexError):
-            return ""
+        data = json.loads(proc.stdout)
+        tag = data.get("tag_name", "")
+        if re_pattern is None:
+            return tag
+        match = re.search(re_pattern, tag)
+        if match and match.groups():
+            return match.group(1)
+        raise RuntimeError(f"tag {tag} does not match pattern /{re_pattern}/")
 
     def dl(self, target: Optional[str], source: str) -> str:
         if target is None:
