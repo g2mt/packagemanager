@@ -237,19 +237,13 @@ class Manager:
 
         tmp_dir = tempfile.mkdtemp()
         try:
-            try:
-                self.run(
-                    [source, "--appimage-extract"],
-                    cwd=tmp_dir,
-                    check=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            except subprocess.CalledProcessError as e:
-                print(
-                    f"Failed to extract AppImage: {e}", file=sys.stderr
-                )
-                return
+            self.run(
+                [source, "--appimage-extract"],
+                cwd=tmp_dir,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
 
             squashfs_root = os.path.join(tmp_dir, "squashfs-root")
             if not os.path.isdir(squashfs_root):
@@ -275,7 +269,7 @@ class Manager:
                 if selection < 1 or selection > len(icons):
                     raise ValueError
             except (ValueError, IndexError):
-                print("Invalid selection, using first icon.", file=sys.stderr)
+                self.log("Invalid selection, using first icon.")
                 selection = 1
 
             icon_src = icons[selection - 1]
@@ -293,8 +287,6 @@ Terminal=false
 """
             with open(desktop_path, "w") as f:
                 f.write(desktop_content)
-
-            print("Created")
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
