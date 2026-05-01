@@ -78,6 +78,15 @@ class Package:
         tags: Optional[List[str]] = None,
         version=None,
     ) -> None:
+        """Initialize Package.
+
+        Args:
+            func: A callable that will be invoked when the package is installed.
+                  It receives the Package instance.
+            name: The package name, used for directory lookup and metadata.
+            tags: Optional list of tags for filtering packages.
+            version: Optional version string or callable returning version string.
+        """
         self.func = func
         self.name = name
         self.tags: List[str] = tags if tags is not None else []
