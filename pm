@@ -5,7 +5,7 @@ import json
 import os
 import sys
 from typing import List, Optional, Callable, Dict
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 #### Schemas
 
@@ -13,6 +13,31 @@ from dataclasses import dataclass
 class CachedVersionsSchema:
     installed: Optional[str] = None
     cached: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'CachedVersionsSchema':
+        return cls(
+            installed=data.get("installed"),
+            cached=data.get("cached")
+        )
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+@dataclass
+class MetadataSchema:
+    versions: Dict[str, CachedVersionsSchema]
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'MetadataSchema':
+        versions_data = data.get("versions", {})
+        versions = {k: CachedVersionsSchema.from_dict(v) for k, v in versions_data.items()}
+        return cls(versions=versions)
+
+    def to_dict(self) -> dict:
+        return {
+            "versions": {k: v.to_dict() for k, v in self.versions.items()}
+        }
 
 #### Manager objects
 
@@ -47,20 +72,6 @@ class Manager:
         self.packages: Dict[str, Package] = {}
         self._pkg_json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pkg.json')
         self.package_versions: Dict[str, dict] = {}
-        self._load_version_data()
-
-    ### Version data
-
-    def _load_version_data(self) -> None:
-        if os.path.exists(self._pkg_json_path):
-            try:
-                with open(self._pkg_json_path, 'r') as f:
-                    data = json.load(f)
-                self.package_versions = data.get("versions", {})
-            except Exception:
-                self.package_versions = {}
-        else:
-            self.package_versions = {}
 
     ### Public methods
 
@@ -82,16 +93,29 @@ class Manager:
 #### Metadata
 
 def load_metadata(m: Manager) -> None:
-    pass # TODO
+    if os.path.exists(m._pkg_json_path):
+        try:
+            with open(m._pkg_json_path, 'r') as f:
+                data = json.load(f)
+            metadata = MetadataSchema.from_dict(data)
+            for name, pkg in m.packages.items():
+                if name in metadata.versions:
+                    pkg.cached_versions = metadata.versions[name]
+            # Keep package_versions dict in sync for the decorator logic
+            m.package_versions = {k: v.to_dict() for k, v in metadata.versions.items()}
+        except Exception:
+            m.package_versions = {}
+    else:
+        m.package_versions = {}
 
 def save_metadata(m: Manager) -> None:
     versions = {}
     for name, pkg in m.packages.items():
-        versions[name] = {
-            "installed": pkg.cached_versions.installed,
-            "cached": pkg.cached_versions.cached,
-        }
-    data = {"versions": versions}
+        versions[name] = pkg.cached_versions
+    
+    metadata = MetadataSchema(versions=versions)
+    data = metadata.to_dict()
+    
     try:
         with open(m._pkg_json_path, 'w') as f:
             json.dump(data, f, indent=4)
@@ -180,6 +204,9 @@ def main() -> None:
         except Exception as e:
             print(f"Error executing config file: {e}", file=sys.stderr)
             sys.exit(1)
+
+        # Load metadata after config is executed so packages are registered
+        load_metadata(m)
 
         if args.subcommand == "install":
             run_install(m, packages=args.packages, tags=args.tags, force=args.force)
