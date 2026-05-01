@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import textwrap
 import re
 import json
 import os
@@ -167,6 +168,12 @@ class Manager:
         """Execute `*args`, `**kwargs` via `subprocess.run` and return the CompletedProcess."""
         self.log(" ".join(args))
         return subprocess.run(args, **kwargs)
+
+    def bash(self, bash_source: str, **kwargs) -> subprocess.CompletedProcess:
+        """Executes bash with the *bash_source*"""
+        bash_source = textwrap.dedent(bash_source).strip()
+        self.log(bash_source)
+        return subprocess.check_output(["bash", "-c", bash_source], **kwargs)
 
     #### Utils
 
