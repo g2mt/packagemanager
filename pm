@@ -22,10 +22,6 @@ class Manager:
             return func
         return decorator
 
-    def run(self):
-        for pkg in self.packages.values():
-            pkg.run()
-
     def run_install(self, package_names):
         for name in package_names:
             if name in self.packages:
@@ -50,13 +46,11 @@ def main():
                 config_code = f.read()
             exec(config_code, sub_globals)
             m = sub_globals["m"]
-            if args.subcommand == "install":
-                m.run_install(args.packages)
-            else:
-                m.run()
         except Exception as e:
             print(f"Error executing config file: {e}", file=sys.stderr)
             sys.exit(1)
+        if args.subcommand == "install":
+            m.run_install(args.packages)
     else:
         print("No config file provided. Use --config <file> to specify one.", file=sys.stderr)
 
