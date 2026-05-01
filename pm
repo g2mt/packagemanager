@@ -1,10 +1,33 @@
 #!/usr/bin/env python3
 
+import argparse
+import sys
+
 class Manager:
     pass
 
 def main():
-    pass
+    parser = argparse.ArgumentParser(description="Run a config file with Manager exposed as 'm'")
+    parser.add_argument("--config", help="Path to the config file (e.g., config.py)")
+    args = parser.parse_args()
+
+    if args.config:
+        # Create a sub-interpreter environment
+        # Expose Manager() as the global variable 'm'
+        sub_globals = {"m": Manager()}
+        try:
+            with open(args.config, "r") as f:
+                config_code = f.read()
+            # Execute the config file in the sub-interpreter
+            exec(config_code, sub_globals)
+        except FileNotFoundError:
+            print(f"Error: Config file '{args.config}' not found.", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error executing config file: {e}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        print("No config file provided. Use --config <file> to specify one.", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
