@@ -87,7 +87,7 @@ def save_versions(m: Manager) -> None:
         print(f"Warning: failed to save version data: {e}", file=sys.stderr)
 
 
-def run_install(m: Manager, *, packages: List[str], tags: Optional[List[str]] = None) -> None:
+def run_install(m: Manager, *, packages: List[str], tags: Optional[List[str]] = None, force: bool = False) -> None:
     if not packages and not tags:
         print("Error: No packages or tags specified.", file=sys.stderr)
         return
@@ -101,7 +101,7 @@ def run_install(m: Manager, *, packages: List[str], tags: Optional[List[str]] = 
         pkg = m.packages[name]
         if tags and not any(t in pkg.tags for t in tags):
             continue
-        pkg.install()
+        pkg.install(force=force)
 
     save_versions(m)
 
@@ -146,6 +146,8 @@ def main() -> None:
                                 help='Names of packages to install (optional if using tags)')
     parser_install.add_argument('-t', '--tag', action='append', dest='tags',
                                 help='Filter by tag (may be specified multiple times)')
+    parser_install.add_argument('-f', '--force', action='store_true',
+                                help='Force reinstall even if version unchanged')
 
     parser_update = subparsers.add_parser('update', help='Update cached versions of packages')
     parser_update.add_argument('packages', nargs='*',
@@ -167,7 +169,7 @@ def main() -> None:
             sys.exit(1)
 
         if args.subcommand == "install":
-            run_install(m, packages=args.packages, tags=args.tags)
+            run_install(m, packages=args.packages, tags=args.tags, force=args.force)
         elif args.subcommand == "update":
             run_update(m, packages=args.packages, tags=args.tags)
         else:
