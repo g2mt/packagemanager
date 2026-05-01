@@ -69,7 +69,7 @@ SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 class Package:
     def __init__(
         self,
-        func: Callable[[], None],
+        func: Callable[["Package"], None],
         *,
         name: str,
         tags: Optional[List[str]] = None,
@@ -92,7 +92,7 @@ class Package:
         old_cwd = os.getcwd()
         try:
             os.chdir(os.path.join(SCRIPT_PATH, self.name))
-            self.func()
+            self.func(self)
         finally:
             os.chdir(old_cwd)
         ver = self.get_current_version()
@@ -121,7 +121,7 @@ class Manager:
     #### Definitions
 
     def package(self, **kwargs) -> Callable:
-        """Register a decorator for a package with given *kwargs* (name, tags, version)."""
+        """Register a decorator for a package with given *kwargs* (name, tags, version). The inner function will be called with the package on install."""
 
         def decorator(func: Callable[[], None]) -> Callable[[], None]:
             pkg = Package(func, **kwargs)
@@ -146,6 +146,8 @@ class Manager:
         """Execute `*args`, `**kwargs` via `subprocess.run` and return the CompletedProcess."""
         self.log(" ".join(args))
         return subprocess.run(args, **kwargs)
+
+    #### Utils
 
     def extract(self, target: str, source: str) -> None:
         """Extract *source* archive into *target* directory, handling tar or 7z."""
