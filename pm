@@ -586,8 +586,21 @@ def main() -> None:
 
     # Handle the docs subcommand without requiring a config file.
     if args.subcommand == "docs":
+        import inspect
         classes = [Package, Manager]
-        print("\n\n".join(map(lambda c: pydoc.render_doc(c), classes)))
+        lines = []
+        for cls in classes:
+            lines.append(cls.__name__)
+            if cls.__doc__:
+                lines.append("  " + cls.__doc__.strip().split('\n')[0])
+            for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
+                if method.__module__ != __name__:
+                    continue
+                if method.__doc__:
+                    doc_first = method.__doc__.strip().split('\n')[0]
+                    lines.append(f"  {name}: {doc_first}")
+            lines.append("")
+        print("\n".join(lines))
         sys.exit(0)
 
     if args.config:
