@@ -253,7 +253,7 @@ class Manager:
 
             # Find icon files (png or svg) in the root of the extracted tree
             icons = []
-            for ext in ("*.png", "*.svg", "*.PNG", "*.SVG"):
+            for ext in ("*.png", "*.svg"):
                 icons.extend(glob.glob(os.path.join(squashfs_root, ext)))
 
             if not icons:
