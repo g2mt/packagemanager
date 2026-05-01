@@ -38,6 +38,10 @@ class MetadataSchema:
     def to_dict(self) -> dict:
         return {"versions": {k: v.to_dict() for k, v in self.versions.items()}}
 
+#### Constants
+
+##### ANSI
+
 
 #### Manager objects
 
@@ -85,7 +89,7 @@ class Manager:
 
     ### Public methods
 
-    #### Packaging
+    #### Definitions
 
     def package(self, **kwargs) -> Callable:
         def decorator(func: Callable[[], None]) -> Callable[[], None]:
@@ -98,6 +102,8 @@ class Manager:
             return func
 
         return decorator
+
+    #### Process execution
 
     #### Downloads
 
