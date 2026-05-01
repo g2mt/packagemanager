@@ -80,6 +80,7 @@ class Package:
         self.cached_versions = CachedVersionsSchema()
 
     def install(self, force: bool) -> None:
+        """Install the package, optionally forcing reinstallation if *force* is True."""
         if not force and self.cached_versions.installed is not None and self.cached_versions.installed == self.cached_versions.cached:
             return
         self.func()
@@ -89,7 +90,7 @@ class Package:
             self.cached_versions.cached = ver
 
     def get_current_version(self) -> Optional[str]:
-        """Return the current version of this package by evaluating its version expression."""
+        """Return the current version string by evaluating the version expression, or None."""
         if self._version_expr is None:
             return None
         if callable(self._version_expr):
@@ -111,6 +112,7 @@ class Manager:
     #### Definitions
 
     def package(self, **kwargs) -> Callable:
+        """Register a decorator for a package with given *kwargs* (name, tags, version)."""
         def decorator(func: Callable[[], None]) -> Callable[[], None]:
             pkg = Package(func, **kwargs)
             self.packages[pkg.name] = pkg
@@ -125,15 +127,18 @@ class Manager:
     #### Log
 
     def log(self, s: str):
+        """Print *s* to stdout in gray."""
         print(f"{ANSI_GRAY}{s}{ANSI_RESET}")
 
     #### Process execution
 
     def run(self, args: list, **kwargs) -> subprocess.CompletedProcess:
+        """Execute *args* via subprocess and return the CompletedProcess."""
         self.log(" ".join(args))
         return subprocess.run(args, **kwargs)
 
     def extract(self, target: str, source: str) -> None:
+        """Extract *source* archive into *target* directory, handling tar or 7z."""
         if tarfile.is_tarfile(source):
             with tarfile.open(source) as tar:
                 members = tar.getmembers()
@@ -199,6 +204,7 @@ class Manager:
     #### Filesystem operations
 
     def link(self, target: str, source: str):
+        """Create a symbolic link from *source* to *target*."""
         target_path = Path(target)
         source_path = Path(source).absolute()
 
@@ -220,6 +226,7 @@ class Manager:
     def github_ver(
         self, repo: str, re_pattern: Optional[str] = None, api_url: str = "https://api.github.com"
     ) -> str:
+        """Return the latest release version tag from *repo* (optionally matching *re_pattern*)."""
         cmd = ["curl", "-sL", f"{api_url}/repos/{repo}/releases/latest"]
         proc = self.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
@@ -235,6 +242,7 @@ class Manager:
         raise RuntimeError(f"tag {tag} does not match pattern /{re_pattern}/")
 
     def dl(self, target: Optional[str], source: str) -> str:
+        """Download file from *source* to *target* (or a temp file if *target* is None)."""
         if target is None:
             random_name = uuid.uuid4().hex
             target = os.path.join(os.getcwd(), random_name)
@@ -244,6 +252,7 @@ class Manager:
         return target
 
     def dl_git(self, target: str, source: str):
+        """Clone or update git repository *source* into *target* directory."""
         if not os.path.exists(target):
             self.run(["git", "clone", "--filter=tree:0", source, target])
             return
