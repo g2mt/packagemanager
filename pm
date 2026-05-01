@@ -124,17 +124,16 @@ class Manager:
         print(f"{ANSI_GRAY}{cmd_str}{ANSI_RESET}")
         return subprocess.run(args, **kwargs)
 
+    #### Downloads
+
     def dl(self, target: Optional[str], source: str) -> str:
         if target is None:
             random_name = uuid.uuid4().hex
             target = os.path.join(os.getcwd(), random_name)
             self.delete_later.append(target)
 
-        curl_args = ["curl", "-C", "-", "-o", target, source]
-        self.run(curl_args)
+        self.run(["curl", "-C", "-", "-o", target, source])
         return target
-
-    #### Downloads
 
 
 #### Metadata
