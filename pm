@@ -194,8 +194,23 @@ class Manager:
 
     #### Versions
 
-    def github_ver(self, repo: str, re_pattern: str, api_url: str="https://api.github.com") -> str:
-        pass
+    def github_ver(
+        self, repo: str, re_pattern: str, api_url: str = "https://api.github.com"
+    ) -> str:
+        import re
+
+        cmd = ["curl", "-sL", f"{api_url}/repos/{repo}/releases/latest"]
+        proc = self.run(cmd, capture_output=True, text=True)
+        if proc.returncode != 0:
+            return ""
+
+        try:
+            data = json.loads(proc.stdout)
+            tag = data.get("tag_name", "")
+            match = re.search(re_pattern, tag)
+            return match.group(1) if match else tag
+        except (json.JSONDecodeError, IndexError):
+            return ""
 
     #### Downloads
 
