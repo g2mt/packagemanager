@@ -8,6 +8,7 @@ import subprocess
 import tarfile
 import sys
 import uuid
+import pydoc
 from pathlib import Path
 from typing import List, Optional, Callable, Dict
 from dataclasses import dataclass, asdict
@@ -464,7 +465,18 @@ def main() -> None:
         "list", help="List all packages with versions"
     )
 
+    parser_docs = subparsers.add_parser(
+        "docs", help="Show documentation for Package and Manager classes"
+    )
+
     args = parser.parse_args()
+
+    # Handle the docs subcommand without requiring a config file.
+    if args.subcommand == "docs":
+        doc_package = pydoc.render_doc(Package, "text")
+        doc_manager = pydoc.render_doc(Manager, "text")
+        print(doc_package + "\n\n" + doc_manager)
+        sys.exit(0)
 
     if args.config:
         m = Manager()
