@@ -57,6 +57,8 @@ class MetadataSchema:
 
 ANSI_RESET = "\033[0m"
 ANSI_GRAY = "\033[90m"
+ANSI_GREEN = "\033[92m"
+ANSI_YELLOW = "\033[93m"
 
 
 #### Manager objects
@@ -342,6 +344,31 @@ def run_update(
     save_metadata(m)
 
 
+def run_list(m: Manager) -> None:
+    for name in sorted(m.packages.keys()):
+        pkg = m.packages[name]
+        current = pkg.get_current_version()
+        installed = pkg.cached_versions.installed
+        ver_display = current if current is not None else "N/A"
+        use_color = False
+        color_on = ""
+        if installed is not None and current is not None:
+            if installed == current:
+                use_color = True
+                color_on = ANSI_GREEN
+            else:
+                use_color = True
+                color_on = ANSI_YELLOW
+        colored = f"{color_on}{name} {ver_display}" + (
+            ANSI_RESET if use_color else ""
+        )
+        tag_part = ""
+        if pkg.tags:
+            tag_part = " [" + " ".join(sorted(pkg.tags)) + "]"
+        line = f"{colored}{tag_part}"
+        print(line)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run a config file with Manager exposed as 'm'"
@@ -385,6 +412,10 @@ def main() -> None:
         help="Filter by tag (may be specified multiple times)",
     )
 
+    parser_list = subparsers.add_parser(
+        "list", help="List all packages with versions"
+    )
+
     args = parser.parse_args()
 
     if args.config:
@@ -405,6 +436,8 @@ def main() -> None:
             run_install(m, packages=args.packages, tags=args.tags, force=args.force)
         elif args.subcommand == "update":
             run_update(m, packages=args.packages, tags=args.tags)
+        elif args.subcommand == "list":
+            run_list(m)
         else:
             if args.subcommand is None:
                 print("No subcommand specified.", file=sys.stderr)
