@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import subprocess
+import tarfile
 import sys
 import uuid
 from typing import List, Optional, Callable, Dict
@@ -123,6 +124,54 @@ class Manager:
         cmd_str = " ".join(args)
         print(f"{ANSI_GRAY}{cmd_str}{ANSI_RESET}")
         return subprocess.run(args, **kwargs)
+
+    def extract(self, target: str, source: str) -> None:
+        if tarfile.is_tarfile(source):
+            with tarfile.open(source) as tar:
+                members = tar.getmembers()
+                top_level = {m.name.split('/')[0] for m in members}
+                
+                if len(top_level) > 1:
+                    os.makedirs(target, exist_ok=True)
+                    tar.extractall(target)
+                elif len(top_level) == 1:
+                    root_name = list(top_level)[0]
+                    root_member = next(m for m in members if m.name.startswith(root_name))
+                    
+                    if root_member.isdir():
+                        import tempfile
+                        with tempfile.TemporaryDirectory() as tmp:
+                            tar.extractall(tmp)
+                            os.makedirs(target, exist_ok=True)
+                            src_dir = os.path.join(tmp, root_name)
+                            for item in os.listdir(src_dir):
+                                os.rename(os.path.join(src_dir, item), os.path.join(target, item))
+                    else:
+                        os.makedirs(target, exist_ok=True)
+                        tar.extractall(target)
+        else:
+            # Use 7z for non-tar files
+            list_proc = self.run(["7z", "l", "-ba", "-slt", source], capture_output=True, text=True)
+            files = [line.split('=')[1].strip() for line in list_proc.stdout.splitlines() if line.startswith("Path =")][1:]
+            top_level = {f.split(os.sep)[0] for f in files}
+
+            if len(top_level) > 1:
+                self.run(["7z", "x", source, f"-o{target}"])
+            elif len(top_level) == 1:
+                root_name = list(top_level)[0]
+                # Check if the single top level item is a directory by looking for children
+                is_dir = any(f != root_name and f.startswith(root_name) for f in files)
+                
+                if is_dir:
+                    import tempfile
+                    with tempfile.TemporaryDirectory() as tmp:
+                        self.run(["7z", "x", source, f"-o{tmp}"])
+                        os.makedirs(target, exist_ok=True)
+                        src_dir = os.path.join(tmp, root_name)
+                        for item in os.listdir(src_dir):
+                            os.rename(os.path.join(src_dir, item), os.path.join(target, item))
+                else:
+                    self.run(["7z", "x", source, f"-o{target}"])
 
     #### Downloads
 
