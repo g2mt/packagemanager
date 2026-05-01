@@ -8,6 +8,7 @@ import subprocess
 import tarfile
 import sys
 import uuid
+from pathlib import Path
 from typing import List, Optional, Callable, Dict
 from dataclasses import dataclass, asdict
 
@@ -196,7 +197,21 @@ class Manager:
     #### Filesystem operations
 
     def link(self, target: str, source: str):
-        pass
+        target_path = Path(target)
+        source_path = Path(source).absolute()
+
+        if target_path.is_symlink():
+            if target_path.resolve() == source_path:
+                return
+            else:
+                raise RuntimeError(
+                    f"Link {target} already exists but points to {target_path.resolve()} instead of {source_path}"
+                )
+
+        if target_path.exists():
+            raise RuntimeError(f"Cannot create link: {target} already exists and is not a symlink")
+
+        os.symlink(source_path, target_path)
 
     #### Downloads
 
