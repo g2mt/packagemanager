@@ -213,6 +213,9 @@ class Manager:
                 else:
                     self.run(["7z", "x", source, f"-o{target}"])
 
+    def install_appimage(self, pkg: Package, source: str):
+        pass
+
     #### Filesystem operations
 
     def link(self, target: str, source: str):
