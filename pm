@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import re
 import json
 import os
 import subprocess
@@ -197,8 +198,6 @@ class Manager:
     def github_ver(
         self, repo: str, re_pattern: str, api_url: str = "https://api.github.com"
     ) -> str:
-        import re
-
         cmd = ["curl", "-sL", f"{api_url}/repos/{repo}/releases/latest"]
         proc = self.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
