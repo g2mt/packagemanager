@@ -169,7 +169,7 @@ class Manager:
         self.log(" ".join(args))
         return subprocess.run(args, **kwargs)
 
-    def bash(self, bash_source: str, **kwargs) -> str:
+    def bash(self, bash_source: str, **kwargs) -> bytes:
         """Executes bash with the *bash_source*, returning the stdout. The *bash_source* is automatically dedented before the call."""
         bash_source = textwrap.dedent(bash_source).strip()
         self.log(bash_source)
