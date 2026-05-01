@@ -71,13 +71,15 @@ SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 class Package:
+    func: Callable[["Package"], None]
+
     def __init__(
         self,
         func: Callable[["Package"], None],
         *,
         name: str,
         tags: Optional[List[str]] = None,
-        version=None,
+        version: Optional[Callable[["Package"], str] | str] =None,
     ) -> None:
         """Initialize Package.
 
@@ -91,8 +93,9 @@ class Package:
         self.func = func
         self.name = name
         self.tags: List[str] = tags if tags is not None else []
-        self._version_expr = version  # value or callable
+        self.installing_version = None
         self.cached_versions = CachedVersionsSchema()
+        self._version_expr = version  # value or callable
 
     def install(self, force: bool) -> None:
         """Install the package, optionally forcing reinstallation if *force* is True."""
@@ -103,17 +106,17 @@ class Package:
         ):
             return
         old_cwd = os.getcwd()
+        self.installing_version = self._get_current_version()
         try:
             os.chdir(os.path.join(SCRIPT_PATH, self.name))
             self.func(self)
         finally:
             os.chdir(old_cwd)
-        ver = self.get_current_version()
         if ver is not None:
             self.cached_versions.installed = ver
             self.cached_versions.cached = ver
 
-    def get_current_version(self) -> Optional[str]:
+    def _get_current_version(self) -> Optional[str]:
         """Return the current version string by evaluating the version expression, or None."""
         if self._version_expr is None:
             return None
@@ -125,9 +128,9 @@ class Package:
 class Manager:
     def __init__(self) -> None:
         self._pkg_json_path = os.path.join(SCRIPT_PATH, "pkg.json")
-        self.packages: Dict[str, Package] = {}
-        self.package_versions: Dict[str, dict] = {}
-        self.delete_later: List[str] = []
+        self._packages: Dict[str, Package] = {}
+        self._package_versions: Dict[str, dict] = {}
+        self._delete_later: List[str] = []
 
     ### Public methods
 
@@ -138,8 +141,8 @@ class Manager:
 
         def decorator(func: Callable[[], None]) -> Callable[[], None]:
             pkg = Package(func, **kwargs)
-            self.packages[pkg.name] = pkg
-            data = self.package_versions.get(pkg.name)
+            self._packages[pkg.name] = pkg
+            data = self._package_versions.get(pkg.name)
             if isinstance(data, dict):
                 pkg.cached_versions.installed = data.get("installed")
                 pkg.cached_versions.cached = data.get("cached")
@@ -350,7 +353,7 @@ Terminal=false
         if target is None:
             random_name = uuid.uuid4().hex
             target = os.path.join(os.getcwd(), random_name)
-            self.delete_later.append(target)
+            self._delete_later.append(target)
 
         self.run(["curl", "-C", "-", "-o", target, source])
         return target
@@ -420,26 +423,26 @@ def load_metadata(m: Manager) -> None:
             with open(m._pkg_json_path, "r") as f:
                 data = json.load(f)
             metadata = MetadataSchema.from_dict(data)
-            for name, pkg in m.packages.items():
+            for name, pkg in m._packages.items():
                 if name in metadata.versions:
                     pkg.cached_versions = metadata.versions[name]
             # Keep package_versions dict in sync for the decorator logic
-            m.package_versions = {k: v.to_dict() for k, v in metadata.versions.items()}
-            m.delete_later = metadata.delete_later
+            m._package_versions = {k: v.to_dict() for k, v in metadata.versions.items()}
+            m._delete_later = metadata.delete_later
         except Exception:
-            m.package_versions = {}
-            m.delete_later = []
+            m._package_versions = {}
+            m._delete_later = []
     else:
-        m.package_versions = {}
-        m.delete_later = []
+        m._package_versions = {}
+        m._delete_later = []
 
 
 def save_metadata(m: Manager) -> None:
     versions = {}
-    for name, pkg in m.packages.items():
+    for name, pkg in m._packages.items():
         versions[name] = pkg.cached_versions
 
-    metadata = MetadataSchema(versions=versions, delete_later=m.delete_later)
+    metadata = MetadataSchema(versions=versions, delete_later=m._delete_later)
     data = metadata.to_dict()
 
     try:
@@ -463,13 +466,13 @@ def run_install(
         print("Error: No packages or tags specified.", file=sys.stderr)
         return
 
-    target_names = list(m.packages.keys()) if not packages and tags else packages
+    target_names = list(m._packages.keys()) if not packages and tags else packages
 
     for name in target_names:
-        if name not in m.packages:
+        if name not in m._packages:
             print(f"Error: Package '{name}' is not defined.", file=sys.stderr)
             continue
-        pkg = m.packages[name]
+        pkg = m._packages[name]
         if tags and not any(t in pkg.tags for t in tags):
             continue
         pkg.install(force=force)
@@ -484,16 +487,16 @@ def run_update(
         print("Error: No packages or tags specified.", file=sys.stderr)
         return
 
-    target_names = list(m.packages.keys()) if not packages and tags else packages
+    target_names = list(m._packages.keys()) if not packages and tags else packages
 
     for name in target_names:
-        if name not in m.packages:
+        if name not in m._packages:
             print(f"Error: Package '{name}' is not defined.", file=sys.stderr)
             continue
-        pkg = m.packages[name]
+        pkg = m._packages[name]
         if tags and not any(t in pkg.tags for t in tags):
             continue
-        new_version = pkg.get_current_version()
+        new_version = pkg._get_current_version()
         if new_version is not None:
             old = pkg.cached_versions.cached
             pkg.cached_versions.cached = new_version
@@ -503,8 +506,8 @@ def run_update(
         else:
             print(f"Package '{name}': no version information, skipping.")
 
-    for name, pkg in m.packages.items():
-        m.package_versions[name] = {
+    for name, pkg in m._packages.items():
+        m._package_versions[name] = {
             "installed": pkg.cached_versions.installed,
             "cached": pkg.cached_versions.cached,
         }
@@ -512,9 +515,9 @@ def run_update(
 
 
 def run_list(m: Manager) -> None:
-    for name in sorted(m.packages.keys()):
-        pkg = m.packages[name]
-        current = pkg.get_current_version()
+    for name in sorted(m._packages.keys()):
+        pkg = m._packages[name]
+        current = pkg._get_current_version()
         installed = pkg.cached_versions.installed
         ver_display = current if current is not None else "N/A"
         use_color = False
@@ -532,6 +535,31 @@ def run_list(m: Manager) -> None:
             tag_part = " [" + " ".join(sorted(pkg.tags)) + "]"
         line = f"{colored}{tag_part}"
         print(line)
+
+
+def run_docs() -> None:
+    classes = [Package, Manager]
+    lines = []
+    for cls in classes:
+        lines.append(cls.__name__)
+        if cls.__doc__:
+            doc_lines = cls.__doc__.splitlines()
+            for dl in doc_lines:
+                lines.append("  " + dl)
+        for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
+            if method.__module__ != __name__:
+                continue
+            if name.startswith("_"): # skip private methods
+                continue
+            sig_str = str(inspect.signature(method))
+            lines.append(f"  {name}{sig_str}")
+            if method.__doc__:
+                doc_lines = method.__doc__.splitlines()
+                for dl in doc_lines:
+                    lines.append("    " + dl)
+        lines.append("")
+    print("\n".join(lines))
+
 
 
 def main() -> None:
@@ -587,26 +615,7 @@ def main() -> None:
 
     # Handle the docs subcommand without requiring a config file.
     if args.subcommand == "docs":
-        classes = [Package, Manager]
-        lines = []
-        for cls in classes:
-            lines.append(cls.__name__)
-            if cls.__doc__:
-                doc_lines = cls.__doc__.splitlines()
-                for dl in doc_lines:
-                    lines.append("  " + dl)
-            for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
-                if method.__module__ != __name__:
-                    continue
-                sig_str = str(inspect.signature(method))
-                lines.append(f"  {name}{sig_str}")
-                if method.__doc__:
-                    doc_lines = method.__doc__.splitlines()
-                    for dl in doc_lines:
-                        lines.append("    " + dl)
-            lines.append("")
-        print("\n".join(lines))
-        sys.exit(0)
+        return run_docs()
 
     if args.config:
         m = Manager()
