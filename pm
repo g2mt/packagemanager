@@ -143,7 +143,7 @@ class Manager:
     #### Process execution
 
     def run(self, args: list, **kwargs) -> subprocess.CompletedProcess:
-        """Execute *args* via subprocess and return the CompletedProcess."""
+        """Execute `*args`, `**kwargs` via `subprocess.run` and return the CompletedProcess."""
         self.log(" ".join(args))
         return subprocess.run(args, **kwargs)
 
