@@ -10,6 +10,7 @@ import sys
 import uuid
 import pydoc
 import inspect
+import urllib.request
 import shutil
 import tempfile
 import glob
@@ -419,6 +420,8 @@ Terminal=false
 
     def dl_text(self, source: str) -> str:
         """Performs an HTTP GET request to *source*"""
+        with urllib.request.urlopen(source) as response:
+            return response.read().decode()
 
 
 #### Metadata
