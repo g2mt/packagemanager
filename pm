@@ -227,7 +227,9 @@ class Manager:
             data = json.loads(proc.stdout)
             tag = data.get("tag_name", "")
             match = re.search(re_pattern, tag)
-            return match.group(1) if match else tag
+            if match and match.groups():
+                return match.group(1)
+            return ""
         except (json.JSONDecodeError, IndexError):
             return ""
 
