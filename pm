@@ -89,7 +89,12 @@ class Package:
             and self.cached_versions.installed == self.cached_versions.cached
         ):
             return
-        self.func()
+        old_cwd = os.getcwd()
+        try:
+            os.chdir(os.path.join(SCRIPT_PATH, self.name))
+            self.func()
+        finally:
+            os.chdir(old_cwd)
         ver = self.get_current_version()
         if ver is not None:
             self.cached_versions.installed = ver
