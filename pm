@@ -61,6 +61,7 @@ ANSI_GRAY = "\033[90m"
 ANSI_GREEN = "\033[92m"
 ANSI_YELLOW = "\033[93m"
 
+SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 #### Manager objects
 
@@ -105,10 +106,8 @@ class Package:
 
 class Manager:
     def __init__(self) -> None:
+        self._pkg_json_path = os.path.join(SCRIPT_PATH, "pkg.json")
         self.packages: Dict[str, Package] = {}
-        self._pkg_json_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "pkg.json"
-        )
         self.package_versions: Dict[str, dict] = {}
         self.delete_later: List[str] = []
 
