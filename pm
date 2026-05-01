@@ -62,12 +62,6 @@ class Manager:
         else:
             self.package_versions = {}
 
-    def _load_package_versions(self, pkg: Package) -> None:
-        data = self.package_versions.get(pkg.name)
-        if isinstance(data, dict):
-            pkg.cached_versions.installed = data.get("installed")
-            pkg.cached_versions.cached = data.get("cached")
-
     ### Public methods
 
     #### Packaging
@@ -76,14 +70,21 @@ class Manager:
         def decorator(func: Callable[[], None]) -> Callable[[], None]:
             pkg = Package(func, **kwargs)
             self.packages[pkg.name] = pkg
-            self._load_package_versions(pkg)
+            data = self.package_versions.get(pkg.name)
+            if isinstance(data, dict):
+                pkg.cached_versions.installed = data.get("installed")
+                pkg.cached_versions.cached = data.get("cached")
             return func
         return decorator
 
     #### Downloads
 
+#### Metadata
 
-def save_versions(m: Manager) -> None:
+def load_metadata(m: Manager) -> None:
+    pass # TODO
+
+def save_metadata(m: Manager) -> None:
     versions = {}
     for name, pkg in m.packages.items():
         versions[name] = {
@@ -97,6 +98,7 @@ def save_versions(m: Manager) -> None:
     except Exception as e:
         print(f"Warning: failed to save version data: {e}", file=sys.stderr)
 
+#### Commands
 
 def run_install(m: Manager, *, packages: List[str], tags: Optional[List[str]] = None, force: bool = False) -> None:
     if not packages and not tags:
@@ -114,7 +116,7 @@ def run_install(m: Manager, *, packages: List[str], tags: Optional[List[str]] = 
             continue
         pkg.install(force=force)
 
-    save_versions(m)
+    save_metadata(m)
 
 
 def run_update(m: Manager, *, packages: List[str], tags: Optional[List[str]] = None) -> None:
@@ -144,7 +146,7 @@ def run_update(m: Manager, *, packages: List[str], tags: Optional[List[str]] = N
             "installed": pkg.cached_versions.installed,
             "cached": pkg.cached_versions.cached,
         }
-    save_versions(m)
+    save_metadata(m)
 
 
 def main() -> None:
