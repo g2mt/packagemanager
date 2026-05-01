@@ -72,6 +72,10 @@ SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 class Package:
     func: Callable[["Package"], None]
+    name: str
+    tags: List[str]
+    installing_version: Optional[str]
+    cached_versions: CachedVersionsSchema
 
     def __init__(
         self,
@@ -112,9 +116,9 @@ class Package:
             self.func(self)
         finally:
             os.chdir(old_cwd)
-        if ver is not None:
-            self.cached_versions.installed = ver
-            self.cached_versions.cached = ver
+        if self.installing_version is not None:      # bugfix: use self.installing_version instead of undefined `ver`
+            self.cached_versions.installed = self.installing_version
+            self.cached_versions.cached = self.installing_version
 
     def _get_current_version(self) -> Optional[str]:
         """Return the current version string by evaluating the version expression, or None."""
@@ -546,6 +550,18 @@ def run_docs() -> None:
             doc_lines = cls.__doc__.splitlines()
             for dl in doc_lines:
                 lines.append("  " + dl)
+        # Include non‑private field annotations
+        if hasattr(cls, '__annotations__'):
+            for attr_name, attr_type in cls.__annotations__.items():
+                if attr_name.startswith('_'):
+                    continue
+                if hasattr(attr_type, '__origin__'):
+                    # generic alias e.g. List[str], Optional[str], Callable
+                    type_str = str(attr_type)
+                else:
+                    # simple type (str, int, custom class, etc.)
+                    type_str = getattr(attr_type, '__name__', str(attr_type))
+                lines.append(f"  {attr_name}: {type_str}")
         for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
             if method.__module__ != __name__:
                 continue
