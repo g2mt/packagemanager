@@ -6,6 +6,9 @@ import os
 import sys
 from typing import List, Optional, Callable, Dict
 
+#### Schemas
+
+#### Manager objects
 
 class Package:
     def __init__(self, func: Callable[[], None], *, name: str, tags: Optional[List[str]] = None, version=None) -> None:
@@ -70,6 +73,8 @@ class Manager:
             self._load_package_versions(pkg)
             return func
         return decorator
+
+    #### Downloads
 
 
 def save_versions(m: Manager) -> None:
