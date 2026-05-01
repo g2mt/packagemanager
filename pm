@@ -3,7 +3,9 @@
 import argparse
 import json
 import os
+import subprocess
 import sys
+import uuid
 from typing import List, Optional, Callable, Dict
 from dataclasses import dataclass, asdict
 
@@ -26,6 +28,11 @@ class CachedVersionsSchema:
 @dataclass
 class MetadataSchema:
     versions: Dict[str, CachedVersionsSchema]
+    delete_later: List[str] = None
+
+    def __post_init__(self):
+        if self.delete_later is None:
+            self.delete_later = []
 
     @classmethod
     def from_dict(cls, data: dict) -> "MetadataSchema":
@@ -33,14 +40,20 @@ class MetadataSchema:
         versions = {
             k: CachedVersionsSchema.from_dict(v) for k, v in versions_data.items()
         }
-        return cls(versions=versions)
+        delete_later = data.get("delete_later", [])
+        return cls(versions=versions, delete_later=delete_later)
 
     def to_dict(self) -> dict:
-        return {"versions": {k: v.to_dict() for k, v in self.versions.items()}}
+        return {
+            "versions": {k: v.to_dict() for k, v in self.versions.items()},
+            "delete_later": self.delete_later,
+        }
+
 
 #### Constants
 
-##### ANSI
+ANSI_RESET = "\033[0m"
+ANSI_GRAY  = "\033[90m"
 
 
 #### Manager objects
@@ -86,6 +99,7 @@ class Manager:
             os.path.dirname(os.path.abspath(__file__)), "pkg.json"
         )
         self.package_versions: Dict[str, dict] = {}
+        self.delete_later: List[str] = []
 
     ### Public methods
 
@@ -105,6 +119,21 @@ class Manager:
 
     #### Process execution
 
+    def run(self, args: list, **kwargs) -> subprocess.CompletedProcess:
+        cmd_str = " ".join(args)
+        print(f"{ANSI_GRAY}{cmd_str}{ANSI_RESET}")
+        return subprocess.run(args, **kwargs)
+
+    def dl(self, target: Optional[str], source: str) -> str:
+        if target is None:
+            random_name = uuid.uuid4().hex
+            target = os.path.join(os.getcwd(), random_name)
+            self.delete_later.append(target)
+
+        curl_args = ["curl", "-C", "-", "-o", target, source]
+        self.run(curl_args)
+        return target
+
     #### Downloads
 
 
@@ -122,10 +151,13 @@ def load_metadata(m: Manager) -> None:
                     pkg.cached_versions = metadata.versions[name]
             # Keep package_versions dict in sync for the decorator logic
             m.package_versions = {k: v.to_dict() for k, v in metadata.versions.items()}
+            m.delete_later = metadata.delete_later
         except Exception:
             m.package_versions = {}
+            m.delete_later = []
     else:
         m.package_versions = {}
+        m.delete_later = []
 
 
 def save_metadata(m: Manager) -> None:
@@ -133,7 +165,7 @@ def save_metadata(m: Manager) -> None:
     for name, pkg in m.packages.items():
         versions[name] = pkg.cached_versions
 
-    metadata = MetadataSchema(versions=versions)
+    metadata = MetadataSchema(versions=versions, delete_later=m.delete_later)
     data = metadata.to_dict()
 
     try:
