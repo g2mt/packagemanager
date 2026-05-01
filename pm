@@ -243,6 +243,9 @@ class Manager:
         self.run(["curl", "-C", "-", "-o", target, source])
         return target
 
+    def dl_git(self, target: str, source: str):
+        pass
+
 
 #### Metadata
 
