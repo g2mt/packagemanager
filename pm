@@ -192,6 +192,11 @@ class Manager:
                 else:
                     self.run(["7z", "x", source, f"-o{target}"])
 
+    #### Versions
+
+    def github_ver(self, repo: str, re_pattern: str, api_url: str="https://api.github.com") -> str:
+        pass
+
     #### Downloads
 
     def dl(self, target: Optional[str], source: str) -> str:
