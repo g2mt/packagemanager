@@ -35,6 +35,8 @@ class Manager:
         self.package_versions: Dict[str, dict] = {}
         self._load_version_data()
 
+    ### Version data
+
     def _load_version_data(self) -> None:
         if os.path.exists(self._pkg_json_path):
             try:
@@ -52,6 +54,8 @@ class Manager:
             pkg.cached_versions["installed"] = data.get("installed")
             pkg.cached_versions["cached"] = data.get("cached")
 
+    ### Public methods
+
     def package(self, **kwargs) -> Callable:
         def decorator(func: Callable[[], None]) -> Callable[[], None]:
             pkg = Package(func, **kwargs)
@@ -61,7 +65,7 @@ class Manager:
         return decorator
 
 
-def _save_versions(m: Manager) -> None:
+def save_versions(m: Manager) -> None:
     versions = {}
     for name, pkg in m.packages.items():
         versions[name] = {
@@ -95,7 +99,7 @@ def run_install(m: Manager, *, packages: List[str], tags: Optional[List[str]] = 
         if ver is not None:
             pkg.cached_versions["installed"] = ver
 
-    _save_versions(m)
+    save_versions(m)
 
 
 def run_update(m: Manager, *, packages: List[str], tags: Optional[List[str]] = None) -> None:
@@ -125,7 +129,7 @@ def run_update(m: Manager, *, packages: List[str], tags: Optional[List[str]] = N
             "installed": pkg.cached_versions.get("installed"),
             "cached": pkg.cached_versions.get("cached"),
         }
-    _save_versions(m)
+    save_versions(m)
 
 
 def main() -> None:
