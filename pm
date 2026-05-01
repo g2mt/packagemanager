@@ -5,8 +5,14 @@ import json
 import os
 import sys
 from typing import List, Optional, Callable, Dict
+from dataclasses import dataclass
 
 #### Schemas
+
+@dataclass
+class CachedVersionsSchema:
+    installed: Optional[str] = None
+    cached: Optional[str] = None
 
 #### Manager objects
 
@@ -16,16 +22,16 @@ class Package:
         self.name = name
         self.tags: List[str] = tags if tags is not None else []
         self._version_expr = version             # value or callable
-        self.cached_versions: Dict[str, Optional[str]] = {"installed": None, "cached": None}
+        self.cached_versions = CachedVersionsSchema()
 
     def install(self, force: bool) -> None:
-        if not force and self.cached_versions["installed"] == self.cached_versions["cached"]:
+        if not force and self.cached_versions.installed == self.cached_versions.cached:
             return
         self.func()
         ver = self.get_current_version()
         if ver is not None:
-            self.cached_versions["installed"] = ver
-            self.cached_versions["cached"] = ver
+            self.cached_versions.installed = ver
+            self.cached_versions.cached = ver
 
     def get_current_version(self) -> Optional[str]:
         """Return the current version of this package by evaluating its version expression."""
@@ -59,8 +65,8 @@ class Manager:
     def _load_package_versions(self, pkg: Package) -> None:
         data = self.package_versions.get(pkg.name)
         if isinstance(data, dict):
-            pkg.cached_versions["installed"] = data.get("installed")
-            pkg.cached_versions["cached"] = data.get("cached")
+            pkg.cached_versions.installed = data.get("installed")
+            pkg.cached_versions.cached = data.get("cached")
 
     ### Public methods
 
@@ -81,8 +87,8 @@ def save_versions(m: Manager) -> None:
     versions = {}
     for name, pkg in m.packages.items():
         versions[name] = {
-            "installed": pkg.cached_versions.get("installed"),
-            "cached": pkg.cached_versions.get("cached"),
+            "installed": pkg.cached_versions.installed,
+            "cached": pkg.cached_versions.cached,
         }
     data = {"versions": versions}
     try:
@@ -127,16 +133,16 @@ def run_update(m: Manager, *, packages: List[str], tags: Optional[List[str]] = N
             continue
         new_version = pkg.get_current_version()
         if new_version is not None:
-            old = pkg.cached_versions.get("cached")
-            pkg.cached_versions["cached"] = new_version
+            old = pkg.cached_versions.cached
+            pkg.cached_versions.cached = new_version
             print(f"Updated cached version for package '{name}': {old} -> {new_version}")
         else:
             print(f"Package '{name}': no version information, skipping.")
 
     for name, pkg in m.packages.items():
         m.package_versions[name] = {
-            "installed": pkg.cached_versions.get("installed"),
-            "cached": pkg.cached_versions.get("cached"),
+            "installed": pkg.cached_versions.installed,
+            "cached": pkg.cached_versions.cached,
         }
     save_versions(m)
 
