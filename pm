@@ -124,7 +124,7 @@ class Manager:
     #### Definitions
 
     def package(self, **kwargs) -> Callable:
-        """Register a decorator for a package with given *kwargs* (name, tags, version). The inner function will be called with the package on install."""
+        """Register a decorator for a package with given *kwargs* (name, tags, version). See [Package.__init__]. The inner function will be called with the package on install."""
 
         def decorator(func: Callable[[], None]) -> Callable[[], None]:
             pkg = Package(func, **kwargs)
@@ -218,7 +218,7 @@ class Manager:
 
     def install_appimage(self, pkg: Package, source: str) -> None:
         """
-        Install an AppImage package. The AppImage is extracted and a .desktop entry is created.
+        Install an AppImage package from *source* file. The AppImage is extracted and a .desktop entry is created.
         """
         source = os.path.realpath(source)
 
@@ -320,7 +320,7 @@ Terminal=false
         re_pattern: Optional[str] = None,
         api_url: str = "https://api.github.com",
     ) -> str:
-        """Return the latest release version tag from *repo* (optionally matching *re_pattern*)."""
+        """Return the latest release version tag from *repo* (optionally matching *re_pattern*, returning the 1st matched regex group if provided)."""
         cmd = ["curl", "-sL", f"{api_url}/repos/{repo}/releases/latest"]
         proc = self.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
