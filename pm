@@ -9,6 +9,9 @@ import tarfile
 import sys
 import uuid
 import pydoc
+import shutil
+import tempfile
+import glob
 from pathlib import Path
 from typing import List, Optional, Callable, Dict
 from dataclasses import dataclass, asdict
@@ -213,8 +216,87 @@ class Manager:
                 else:
                     self.run(["7z", "x", source, f"-o{target}"])
 
-    def install_appimage(self, pkg: Package, source: str):
-        pass
+    def install_appimage(self, pkg: Package, source: str) -> None:
+        """
+        Install an AppImage package. The AppImage is extracted and a .desktop entry is created.
+        """
+        source = os.path.realpath(source)
+
+        if not os.path.isfile(source):
+            print(f"File not found: {source}", file=sys.stderr)
+            return
+
+        home = os.path.expanduser("~")
+        app_name = pkg.name
+        desktop_dir = os.path.join(home, ".local", "share", "applications")
+        icon_dir = os.path.join(home, ".local", "share", "icons")
+        desktop_path = os.path.join(desktop_dir, f"{app_name}.desktop")
+
+        os.makedirs(desktop_dir, exist_ok=True)
+        os.makedirs(icon_dir, exist_ok=True)
+
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            try:
+                self.run(
+                    [source, "--appimage-extract"],
+                    cwd=tmp_dir,
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except subprocess.CalledProcessError as e:
+                print(
+                    f"Failed to extract AppImage: {e}", file=sys.stderr
+                )
+                return
+
+            squashfs_root = os.path.join(tmp_dir, "squashfs-root")
+            if not os.path.isdir(squashfs_root):
+                raise RuntimeError(
+                    "Extraction did not produce expected 'squashfs-root' directory"
+                )
+
+            # Find icon files (png or svg) in the root of the extracted tree
+            icons = []
+            for ext in ("*.png", "*.svg", "*.PNG", "*.SVG"):
+                icons.extend(glob.glob(os.path.join(squashfs_root, ext)))
+
+            if not icons:
+                raise RuntimeError(
+                    "No icon files (.png/.svg) found in the AppImage root"
+                )
+
+            print("Choose icon: ")
+            for idx, icon in enumerate(icons, start=1):
+                print(f" {idx}) {os.path.basename(icon)}")
+            try:
+                selection = int(input().strip())
+                if selection < 1 or selection > len(icons):
+                    raise ValueError
+            except (ValueError, IndexError):
+                print("Invalid selection, using first icon.", file=sys.stderr)
+                selection = 1
+
+            icon_src = icons[selection - 1]
+            icon_ext = os.path.splitext(icon_src)[1]  # e.g. .png
+            icon_dst = os.path.join(icon_dir, f"{app_name}{icon_ext}")
+            shutil.copy2(icon_src, icon_dst)
+
+            desktop_content = f"""[Desktop Entry]
+Name={app_name}
+StartupWMClass={app_name}
+Exec="{source}"
+Icon={icon_dst}
+Type=Application
+Terminal=false
+"""
+            with open(desktop_path, "w") as f:
+                f.write(desktop_content)
+
+            print("Created")
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     #### Filesystem operations
 
