@@ -82,7 +82,11 @@ class Package:
 
     def install(self, force: bool) -> None:
         """Install the package, optionally forcing reinstallation if *force* is True."""
-        if not force and self.cached_versions.installed is not None and self.cached_versions.installed == self.cached_versions.cached:
+        if (
+            not force
+            and self.cached_versions.installed is not None
+            and self.cached_versions.installed == self.cached_versions.cached
+        ):
             return
         self.func()
         ver = self.get_current_version()
@@ -114,6 +118,7 @@ class Manager:
 
     def package(self, **kwargs) -> Callable:
         """Register a decorator for a package with given *kwargs* (name, tags, version)."""
+
         def decorator(func: Callable[[], None]) -> Callable[[], None]:
             pkg = Package(func, **kwargs)
             self.packages[pkg.name] = pkg
@@ -218,14 +223,19 @@ class Manager:
                 )
 
         if target_path.exists():
-            raise RuntimeError(f"Cannot create link: {target} already exists and is not a symlink")
+            raise RuntimeError(
+                f"Cannot create link: {target} already exists and is not a symlink"
+            )
 
         os.symlink(source_path, target_path)
 
     #### Downloads
 
     def github_ver(
-        self, repo: str, re_pattern: Optional[str] = None, api_url: str = "https://api.github.com"
+        self,
+        repo: str,
+        re_pattern: Optional[str] = None,
+        api_url: str = "https://api.github.com",
     ) -> str:
         """Return the latest release version tag from *repo* (optionally matching *re_pattern*)."""
         cmd = ["curl", "-sL", f"{api_url}/repos/{repo}/releases/latest"]
@@ -261,7 +271,8 @@ class Manager:
             raise RuntimeError(f"Target {target} exists but is not a git repository")
         branch_proc = self.run(
             ["git", "-C", target, "rev-parse", "--abbrev-ref", "HEAD"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         current_branch = branch_proc.stdout.strip()
         if current_branch == "master":
@@ -269,17 +280,31 @@ class Manager:
         else:
             self.run(["git", "-C", target, "fetch", "--tags"])
             newest_tag_proc = self.run(
-                ["git", "-C", target, "for-each-ref", "--sort=-creatordate",
-                 "--format", "%(refname:short)", "refs/tags"],
-                capture_output=True, text=True,
+                [
+                    "git",
+                    "-C",
+                    target,
+                    "for-each-ref",
+                    "--sort=-creatordate",
+                    "--format",
+                    "%(refname:short)",
+                    "refs/tags",
+                ],
+                capture_output=True,
+                text=True,
             )
             newest_tag = newest_tag_proc.stdout.strip().splitlines()
             newest_tag = newest_tag[0] if newest_tag else None
             current_tag_proc = self.run(
                 ["git", "-C", target, "describe", "--tags", "--exact-match", "HEAD"],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
-            current_tag = current_tag_proc.stdout.strip() if current_tag_proc.returncode == 0 else None
+            current_tag = (
+                current_tag_proc.stdout.strip()
+                if current_tag_proc.returncode == 0
+                else None
+            )
             if newest_tag is not None and current_tag != newest_tag:
                 if current_tag is not None:
                     print(
@@ -408,9 +433,7 @@ def run_list(m: Manager) -> None:
             else:
                 use_color = True
                 color_on = ANSI_YELLOW
-        colored = f"{color_on}{name} {ver_display}" + (
-            ANSI_RESET if use_color else ""
-        )
+        colored = f"{color_on}{name} {ver_display}" + (ANSI_RESET if use_color else "")
         tag_part = ""
         if pkg.tags:
             tag_part = " [" + " ".join(sorted(pkg.tags)) + "]"
@@ -461,9 +484,7 @@ def main() -> None:
         help="Filter by tag (may be specified multiple times)",
     )
 
-    parser_list = subparsers.add_parser(
-        "list", help="List all packages with versions"
-    )
+    parser_list = subparsers.add_parser("list", help="List all packages with versions")
 
     parser_docs = subparsers.add_parser(
         "docs", help="Show documentation for Package and Manager classes"
