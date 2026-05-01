@@ -244,7 +244,43 @@ class Manager:
         return target
 
     def dl_git(self, target: str, source: str):
-        pass
+        if not os.path.exists(target):
+            self.run(["git", "clone", "--filter=tree:0", source, target])
+            return
+        if not os.path.isdir(os.path.join(target, ".git")):
+            raise RuntimeError(f"Target {target} exists but is not a git repository")
+        branch_proc = self.run(
+            ["git", "-C", target, "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True,
+        )
+        current_branch = branch_proc.stdout.strip()
+        if current_branch == "master":
+            self.run(["git", "-C", target, "pull"])
+        else:
+            self.run(["git", "-C", target, "fetch", "--tags"])
+            newest_tag_proc = self.run(
+                ["git", "-C", target, "for-each-ref", "--sort=-creatordate",
+                 "--format", "%(refname:short)", "refs/tags"],
+                capture_output=True, text=True,
+            )
+            newest_tag = newest_tag_proc.stdout.strip().splitlines()
+            newest_tag = newest_tag[0] if newest_tag else None
+            current_tag_proc = self.run(
+                ["git", "-C", target, "describe", "--tags", "--exact-match", "HEAD"],
+                capture_output=True, text=True,
+            )
+            current_tag = current_tag_proc.stdout.strip() if current_tag_proc.returncode == 0 else None
+            if newest_tag is not None and current_tag != newest_tag:
+                if current_tag is not None:
+                    print(
+                        f"Warning: current checked out tag {current_tag} is not the newest tag {newest_tag} for repo {source}",
+                        file=sys.stderr,
+                    )
+                else:
+                    print(
+                        f"Warning: HEAD not at a tag; newest tag is {newest_tag} for repo {source}",
+                        file=sys.stderr,
+                    )
 
 
 #### Metadata
