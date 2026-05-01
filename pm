@@ -15,8 +15,13 @@ class Package:
         self._version_expr = version             # value or callable
         self.cached_versions: Dict[str, Optional[str]] = {"installed": None, "cached": None}
 
-    def run(self) -> None:
+    def install(self) -> None:
         self.func()
+        ver = self.get_current_version()
+        if ver is not None:
+            self.cached_versions["installed"] = ver
+            if self.cached_versions["cached"] is None:
+                self.cached_versions["cached"] = ver
 
     def get_current_version(self) -> Optional[str]:
         """Return the current version of this package by evaluating its version expression."""
@@ -54,6 +59,8 @@ class Manager:
             pkg.cached_versions["cached"] = data.get("cached")
 
     ### Public methods
+
+    #### Packaging
 
     def package(self, **kwargs) -> Callable:
         def decorator(func: Callable[[], None]) -> Callable[[], None]:
@@ -93,10 +100,7 @@ def run_install(m: Manager, *, packages: List[str], tags: Optional[List[str]] = 
         pkg = m.packages[name]
         if tags and not any(t in pkg.tags for t in tags):
             continue
-        pkg.run()
-        ver = pkg.get_current_version()
-        if ver is not None:
-            pkg.cached_versions["installed"] = ver
+        pkg.install()
 
     save_versions(m)
 
