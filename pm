@@ -15,13 +15,14 @@ class Package:
         self._version_expr = version             # value or callable
         self.cached_versions: Dict[str, Optional[str]] = {"installed": None, "cached": None}
 
-    def install(self) -> None:
+    def install(self, force: bool) -> None:
+        if not force and self.cached_versions["installed"] == self.cached_versions["cached"]:
+            return
         self.func()
         ver = self.get_current_version()
         if ver is not None:
             self.cached_versions["installed"] = ver
-            if self.cached_versions["cached"] is None:
-                self.cached_versions["cached"] = ver
+            self.cached_versions["cached"] = ver
 
     def get_current_version(self) -> Optional[str]:
         """Return the current version of this package by evaluating its version expression."""
