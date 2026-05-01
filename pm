@@ -18,14 +18,13 @@ class Package:
     def run(self) -> None:
         self.func()
 
-
-def _get_current_version(pkg: Package) -> Optional[str]:
-    """Return the current version of a package by evaluating its version expression."""
-    if pkg._version_expr is None:
-        return None
-    if callable(pkg._version_expr):
-        return pkg._version_expr(pkg)          # call with the package object
-    return pkg._version_expr
+    def get_current_version(self) -> Optional[str]:
+        """Return the current version of this package by evaluating its version expression."""
+        if self._version_expr is None:
+            return None
+        if callable(self._version_expr):
+            return self._version_expr(self)          # call with the package object
+        return self._version_expr
 
 
 class Manager:
@@ -95,7 +94,7 @@ def run_install(m: Manager, *, packages: List[str], tags: Optional[List[str]] = 
         if tags and not any(t in pkg.tags for t in tags):
             continue
         pkg.run()
-        ver = _get_current_version(pkg)
+        ver = pkg.get_current_version()
         if ver is not None:
             pkg.cached_versions["installed"] = ver
 
@@ -116,7 +115,7 @@ def run_update(m: Manager, *, packages: List[str], tags: Optional[List[str]] = N
         pkg = m.packages[name]
         if tags and not any(t in pkg.tags for t in tags):
             continue
-        new_version = _get_current_version(pkg)
+        new_version = pkg.get_current_version()
         if new_version is not None:
             old = pkg.cached_versions.get("cached")
             pkg.cached_versions["cached"] = new_version
