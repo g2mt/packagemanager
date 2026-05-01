@@ -193,7 +193,12 @@ class Manager:
                 else:
                     self.run(["7z", "x", source, f"-o{target}"])
 
-    #### Versions
+    #### Filesystem operations
+
+    def link(self, target: str, source: str):
+        pass
+
+    #### Downloads
 
     def github_ver(
         self, repo: str, re_pattern: str, api_url: str = "https://api.github.com"
@@ -210,8 +215,6 @@ class Manager:
             return match.group(1) if match else tag
         except (json.JSONDecodeError, IndexError):
             return ""
-
-    #### Downloads
 
     def dl(self, target: Optional[str], source: str) -> str:
         if target is None:
