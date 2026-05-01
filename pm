@@ -80,7 +80,7 @@ class Package:
         self.cached_versions = CachedVersionsSchema()
 
     def install(self, force: bool) -> None:
-        if not force and self.cached_versions.installed == self.cached_versions.cached:
+        if not force and self.cached_versions.installed is not None and self.cached_versions.installed == self.cached_versions.cached:
             return
         self.func()
         ver = self.get_current_version()
