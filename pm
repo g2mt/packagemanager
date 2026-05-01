@@ -592,13 +592,18 @@ def main() -> None:
         for cls in classes:
             lines.append(cls.__name__)
             if cls.__doc__:
-                lines.append("  " + cls.__doc__.strip().split('\n')[0])
+                doc_lines = cls.__doc__.splitlines()
+                for dl in doc_lines:
+                    lines.append("  " + dl)
             for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
                 if method.__module__ != __name__:
                     continue
+                sig_str = str(inspect.signature(method))
+                lines.append(f"  {name}{sig_str}")
                 if method.__doc__:
-                    doc_first = method.__doc__.strip().split('\n')[0]
-                    lines.append(f"  {name}: {doc_first}")
+                    doc_lines = method.__doc__.splitlines()
+                    for dl in doc_lines:
+                        lines.append("    " + dl)
             lines.append("")
         print("\n".join(lines))
         sys.exit(0)
