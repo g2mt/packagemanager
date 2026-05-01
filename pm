@@ -26,9 +26,21 @@ class Manager:
         for pkg in self.packages.values():
             pkg.run()
 
+    def run_install(self, package_names):
+        for name in package_names:
+            if name in self.packages:
+                self.packages[name].run()
+            else:
+                print(f"Error: Package '{name}' is not defined.", file=sys.stderr)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run a config file with Manager exposed as 'm'")
     parser.add_argument("--config", help="Path to the config file (e.g., config.py)")
+    subparsers = parser.add_subparsers(dest='subcommand')
+    parser_install = subparsers.add_parser('install', help='Install given packages')
+    parser_install.add_argument('packages', nargs='+', help='Names of packages to install')
+
     args = parser.parse_args()
 
     if args.config:
@@ -37,12 +49,17 @@ def main():
             with open(args.config, "r") as f:
                 config_code = f.read()
             exec(config_code, sub_globals)
-            sub_globals["m"].run()
+            m = sub_globals["m"]
+            if args.subcommand == "install":
+                m.run_install(args.packages)
+            else:
+                m.run()
         except Exception as e:
             print(f"Error executing config file: {e}", file=sys.stderr)
             sys.exit(1)
     else:
         print("No config file provided. Use --config <file> to specify one.", file=sys.stderr)
+
 
 if __name__ == "__main__":
     main()
