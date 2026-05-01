@@ -9,6 +9,7 @@ import tarfile
 import sys
 import uuid
 import pydoc
+import inspect
 import shutil
 import tempfile
 import glob
@@ -586,7 +587,6 @@ def main() -> None:
 
     # Handle the docs subcommand without requiring a config file.
     if args.subcommand == "docs":
-        import inspect
         classes = [Package, Manager]
         lines = []
         for cls in classes:
