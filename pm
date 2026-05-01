@@ -473,9 +473,8 @@ def main() -> None:
 
     # Handle the docs subcommand without requiring a config file.
     if args.subcommand == "docs":
-        doc_package = pydoc.render_doc(Package, "text")
-        doc_manager = pydoc.render_doc(Manager, "text")
-        print(doc_package + "\n\n" + doc_manager)
+        classes = [Package, Manager]
+        print("\n\n".join(map(lambda c: pydoc.render_doc(c), classes)))
         sys.exit(0)
 
     if args.config:
