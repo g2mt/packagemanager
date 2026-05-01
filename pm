@@ -116,7 +116,7 @@ class Package:
             self.func(self)
         finally:
             os.chdir(old_cwd)
-        if self.installing_version is not None:      # bugfix: use self.installing_version instead of undefined `ver`
+        if self.installing_version is not None:
             self.cached_versions.installed = self.installing_version
             self.cached_versions.cached = self.installing_version
 
@@ -125,7 +125,7 @@ class Package:
         if self._version_expr is None:
             return None
         if callable(self._version_expr):
-            return self._version_expr(self)  # call with the package object
+            return self._version_expr(self) 
         return self._version_expr
 
 
@@ -362,8 +362,8 @@ Terminal=false
         self.run(["curl", "-C", "-", "-o", target, source])
         return target
 
-    def dl_git(self, target: str, source: str):
-        """Clone or update git repository *source* into *target* directory."""
+    def dl_git(self, target: str, source: str) -> None:
+        """Clone or update git repository *source* into *target* directory and pull to latest commit."""
         if not os.path.exists(target):
             self.run(["git", "clone", "--filter=tree:0", source, target])
             return
@@ -416,6 +416,9 @@ Terminal=false
                         f"Warning: HEAD not at a tag; newest tag is {newest_tag} for repo {source}",
                         file=sys.stderr,
                     )
+
+    def dl_text(self, source: str) -> str:
+        """Performs an HTTP GET request to *source*"""
 
 
 #### Metadata
