@@ -119,7 +119,7 @@ class Package:
             return
         self.installing_version = self._get_current_version()
         assert m is not None
-        package_dir = os.path.join(m.bindir, self.name)
+        package_dir = os.path.join(m.datadir, self.name)
         os.makedirs(package_dir, exist_ok=True)
         try:
             os.chdir(package_dir)
@@ -140,7 +140,7 @@ class Package:
 
 
 class Manager:
-    bindir: str
+    datadir: str
 
     def __init__(self) -> None:
         self._pkg_json_path = os.path.join(CONFIG_PATH, "pkg.json")
@@ -148,7 +148,7 @@ class Manager:
         self._package_versions: Dict[str, dict] = {}
         self._delete_later: List[str] = []
         self._interactive: bool = False
-        self.bindir = CONFIG_PATH
+        self.datadir = CONFIG_PATH
 
     ### Public methods
 
@@ -200,6 +200,7 @@ class Manager:
 
     def extract(self, target: str, source: str) -> None:
         """Extract *source* archive into *target* directory, handling tar or 7z."""
+        target = os.path.normpath(target)
         if tarfile.is_tarfile(source):
             with tarfile.open(source) as tar:
                 members = tar.getmembers()
@@ -222,6 +223,8 @@ class Manager:
                         with tempfile.TemporaryDirectory() as tmp:
                             tar.extractall(tmp)
                             os.makedirs(target, exist_ok=True)
+                            print(os.path.join(tmp, root_name), target)
+                            input("!!!!")
                             shutil.move(
                                 os.path.join(tmp, root_name), # src
                                 target,
