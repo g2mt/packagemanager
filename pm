@@ -204,18 +204,24 @@ class Manager:
         if tarfile.is_tarfile(source):
             with tarfile.open(source) as tar:
                 members = tar.getmembers()
+                # Determine the set of top-level directory/file names from archive entries
                 top_level = {m.name.split("/")[0] for m in members}
 
+                # If multiple top-level entries exist, extract everything directly into target dir
                 if len(top_level) > 1:
                     os.makedirs(target, exist_ok=True)
                     tar.extractall(target)
                 elif len(top_level) == 1:
+                    # Only one top-level entry exists; decide if it's a directory or a file
                     root_name = list(top_level)[0]
                     root_member = next(
                         m for m in members if m.name.startswith(root_name)
                     )
 
                     if root_member.isdir():
+                        # The single top-level entry is a directory – extract into a temp location,
+                        # then move its contents into the target directory so that inner files
+                        # end up directly in target, not inside a subfolder.
                         import tempfile
 
                         with tempfile.TemporaryDirectory() as tmp:
@@ -228,6 +234,8 @@ class Manager:
                                     os.path.join(target, item),
                                 )
                     else:
+                        # The single top-level entry is a file (not a directory);
+                        # extract directly into target.
                         os.makedirs(target, exist_ok=True)
                         tar.extractall(target)
         else:
