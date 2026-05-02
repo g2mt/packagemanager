@@ -758,10 +758,10 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Handle the docs subcommand without requiring a config file.
+    # Handle subcommands not requiring a config file.
     if args.subcommand == "docs":
         return run_docs()
-    if args.subcommand == "edit":
+    elif args.subcommand == "edit":
         return run_edit(args.config)
 
     if args.config:
