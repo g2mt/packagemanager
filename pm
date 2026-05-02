@@ -318,7 +318,7 @@ Terminal=false
     #### Filesystem operations
 
     def link(self, target: str, source: str):
-        """Create a symbolic link from *source* to *target*."""
+        """Create a symbolic link from *source* file to *target* file."""
         target_path = Path(target)
         source_path = Path(source).absolute()
 
@@ -361,7 +361,7 @@ Terminal=false
         raise RuntimeError(f"tag {tag} does not match pattern /{re_pattern}/")
 
     def dl(self, target: Optional[str], source: str) -> str:
-        """Download file from *source* to *target* (or a temp file if *target* is None)."""
+        """Download file from *source* URL to *target* file (or a temp file if *target* is None)."""
         if target is None:
             random_name = uuid.uuid4().hex
             target = os.path.join(os.getcwd(), random_name)
@@ -371,7 +371,7 @@ Terminal=false
         return target
 
     def dl_git(self, target: str, source: str) -> None:
-        """Clone or update git repository *source* into *target* directory and pull to latest commit."""
+        """Clone or update git repository in *source* URL into *target* directory and pull to latest commit."""
         if not os.path.exists(target):
             self.run(["git", "clone", "--filter=tree:0", source, target])
             return
@@ -426,7 +426,7 @@ Terminal=false
                     )
 
     def dl_text(self, source: str) -> str:
-        """Performs an HTTP GET request to *source*"""
+        """Performs an HTTP GET request to *source* URL, returning the result of the HTTP request"""
         with urllib.request.urlopen(source) as response:
             return response.read().decode()
 
