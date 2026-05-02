@@ -91,6 +91,7 @@ class Package:
         tags: Optional[List[str]] = None,
         readable_name: Optional[str] = None,
         version: Optional[Callable[["Package"], str] | str] = None,
+        clean_before_install: bool = False,
     ) -> None:
         """Initialize Package.
 
@@ -101,6 +102,9 @@ class Package:
             tags: Optional list of tags for filtering packages.
             readable_name: Optional human-readable name; defaults to *name* if not provided.
             version: Optional version string or callable returning version string.
+            clean_before_install: If True, and the package installation directory is not empty,
+                                  the user will be prompted to remove all existing contents before
+                                  calling the install function.
         """
         self.func = func
         self.name = name
@@ -109,6 +113,7 @@ class Package:
         self.installing_version = None
         self.cached_versions = CachedVersionsSchema()
         self._version_expr = version  # value or callable
+        self.clean_before_install = clean_before_install
 
     def install(self, force: bool) -> None:
         """Install the package, optionally forcing reinstallation if *force* is True."""
@@ -122,6 +127,15 @@ class Package:
         assert m is not None
         package_dir = os.path.join(m.datadir, self.name)
         os.makedirs(package_dir, exist_ok=True)
+        if self.clean_before_install:
+            if os.listdir(package_dir):
+                if m._interactive_ask("Clean", f"Directory {package_dir} is not empty, remove all files before install?"):
+                    for entry in os.listdir(package_dir):
+                        full_path = os.path.join(package_dir, entry)
+                        if os.path.isdir(full_path):
+                            shutil.rmtree(full_path)
+                        else:
+                            os.remove(full_path)
         try:
             m.log(f"cd {package_dir}")
             os.chdir(package_dir)
