@@ -226,17 +226,16 @@ class Manager:
         os.makedirs(desktop_dir, exist_ok=True)
         os.makedirs(icon_dir, exist_ok=True)
 
-        tmp_dir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmp:
             self.run(
                 [source, "--appimage-extract"],
-                cwd=tmp_dir,
+                cwd=tmp,
                 check=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
 
-            squashfs_root = os.path.join(tmp_dir, "squashfs-root")
+            squashfs_root = os.path.join(tmp, "squashfs-root")
             if not os.path.isdir(squashfs_root):
                 raise RuntimeError(
                     "Extraction did not produce expected 'squashfs-root' directory"
@@ -252,18 +251,21 @@ class Manager:
                     "No icon files (.png/.svg) found in the AppImage root"
                 )
 
-            print("Choose icon: ")
-            for idx, icon in enumerate(icons, start=1):
-                print(f" {idx}) {os.path.basename(icon)}")
-            try:
-                selection = int(input().strip())
-                if selection < 1 or selection > len(icons):
-                    raise ValueError
-            except (ValueError, IndexError):
-                self.log("Invalid selection, using first icon.")
-                selection = 1
+            if len(icons) == 1:
+                icon_src = icons[0]
+            else:
+                print("Choose icon: ")
+                for idx, icon in enumerate(icons, start=1):
+                    print(f" {idx}) {os.path.basename(icon)}")
+                try:
+                    selection = int(input().strip())
+                    if selection < 1 or selection > len(icons):
+                        raise ValueError
+                except (ValueError, IndexError):
+                    self.log("Invalid selection, using first icon.")
+                    selection = 1
+                icon_src = icons[selection - 1]
 
-            icon_src = icons[selection - 1]
             icon_ext = os.path.splitext(icon_src)[1]  # e.g. .png
             icon_dst = os.path.join(icon_dir, f"{pkg.name}{icon_ext}")
             shutil.copy2(icon_src, icon_dst)
@@ -278,8 +280,6 @@ class Manager:
                 Terminal=false""")
             with open(desktop_path, "w") as f:
                 f.write(desktop_content)
-        finally:
-            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     #### Filesystem operations
 
