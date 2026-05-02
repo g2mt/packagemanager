@@ -343,8 +343,8 @@ class Manager:
             items = os.listdir(tmp)
 
             if len(items) == 1 and os.path.isdir(os.path.join(tmp, items[0])):
-                # Single top-level directory: rename it to target
-                (Path(tmp) / items[0]).rename(target)
+                # Single top-level directory: move it to target
+                (Path(tmp) / items[0]).move(target)
             else:
                 # Multiple top-level entries or a single file: extract into target
                 os.makedirs(target, exist_ok=True)
