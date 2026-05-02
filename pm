@@ -538,17 +538,14 @@ def run_install(
 
 
 def run_update(*, packages: List[str], tags: Optional[List[str]] = None) -> None:
-    if not packages and not tags:
-        print("Error: No packages or tags specified.", file=sys.stderr)
-        return
-
-    target_names = list(m._packages.keys()) if not packages and tags else packages
+    target_names = packages if packages else m._packages.keys()
 
     for name in target_names:
-        if name not in m._packages:
-            print(f"Error: Package '{name}' is not defined.", file=sys.stderr)
+        try:
+            pkg = m._packages[name]
+        except KeyError:
+            print(f"Package '{name}' is not defined.")
             continue
-        pkg = m._packages[name]
         if tags and not any(t in pkg.tags for t in tags):
             continue
         new_version = pkg._get_current_version()
@@ -561,11 +558,6 @@ def run_update(*, packages: List[str], tags: Optional[List[str]] = None) -> None
         else:
             print(f"Package '{name}': no version information, skipping.")
 
-    for name, pkg in m._packages.items():
-        m._package_versions[name] = {
-            "installed": pkg.cached_versions.installed,
-            "cached": pkg.cached_versions.cached,
-        }
     save_metadata()
 
 
