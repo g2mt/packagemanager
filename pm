@@ -357,12 +357,7 @@ Terminal=false
         api_url: str = "https://api.github.com",
     ) -> str:
         """Return the latest release version tag from *repo* (optionally matching *re_pattern*, returning the 1st matched regex group if provided)."""
-        cmd = ["curl", "-sL", f"{api_url}/repos/{repo}/releases/latest"]
-        proc = self.run(cmd, capture_output=True, text=True)
-        if proc.returncode != 0:
-            return ""
-
-        data = json.loads(proc.stdout)
+        data = json.loads(self.dl_text(f"{api_url}/repos/{repo}/releases/latest"))
         tag = data.get("tag_name", "")
         if re_pattern is None:
             return tag
