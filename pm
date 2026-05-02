@@ -67,6 +67,7 @@ ANSI_GRAY = "\033[90m"
 ANSI_GREEN = "\033[92m"
 ANSI_YELLOW = "\033[93m"
 
+ORIGINAL_WORKDIR = os.getcwd()
 CONFIG_PATH = os.path.expanduser("~/.config/pm")
 
 #### Manager objects
@@ -115,13 +116,15 @@ class Package:
             and self.cached_versions.installed == self.cached_versions.cached
         ):
             return
-        old_cwd = os.getcwd()
         self.installing_version = self._get_current_version()
+        assert m is not None
+        package_dir = os.path.join(m.bindir, self.name)
+        os.makedirs(package_dir, exist_ok=True)
         try:
-            os.chdir(os.path.join(CONFIG_PATH, self.name))
+            os.chdir(package_dir)
             self.func(self)
         finally:
-            os.chdir(old_cwd)
+            os.chdir(ORIGINAL_WORKDIR)
         if self.installing_version is not None:
             self.cached_versions.installed = self.installing_version
             self.cached_versions.cached = self.installing_version
@@ -136,12 +139,15 @@ class Package:
 
 
 class Manager:
+    bindir: str
+
     def __init__(self) -> None:
         self._pkg_json_path = os.path.join(CONFIG_PATH, "pkg.json")
         self._packages: Dict[str, Package] = {}
         self._package_versions: Dict[str, dict] = {}
         self._delete_later: List[str] = []
-        self.interactive: bool = False
+        self._interactive: bool = False
+        self.bindir = CONFIG_PATH
 
     ### Public methods
 
@@ -171,8 +177,8 @@ class Manager:
 
     def run(self, args: list, **kwargs) -> subprocess.CompletedProcess:
         """Execute `*args`, `**kwargs` via `subprocess.run` and return the CompletedProcess."""
-        if self.interactive:
-            user_input = input(f"{ANSI_YELLOW}Run command: {' '.join(args)} [y/N] {ANSI_RESET}")
+        if self._interactive:
+            user_input = input(f"{ANSI_YELLOW}Run command:{ANSI_RESET} {' '.join(args)} [y/N] ")
             if user_input.lower() not in ("y", "yes"):
                 print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
                 sys.exit(1)
@@ -182,7 +188,7 @@ class Manager:
     def bash(self, bash_source: str, **kwargs) -> bytes:
         """Executes bash with the *bash_source*, returning the stdout. The *bash_source* is automatically dedented before the call."""
         bash_source = textwrap.dedent(bash_source).strip()
-        if self.interactive:
+        if self._interactive:
             user_input = input(f"{ANSI_YELLOW}Run bash: {bash_source} [y/N] {ANSI_RESET}")
             if user_input.lower() not in ("y", "yes"):
                 print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
@@ -503,7 +509,7 @@ def run_install(
         return
 
     target_names = list(m._packages.keys()) if not packages and tags else packages
-    m.interactive = interactive
+    m._interactive = interactive
 
     for name in target_names:
         if name not in m._packages:
