@@ -67,7 +67,7 @@ ANSI_GRAY = "\033[90m"
 ANSI_GREEN = "\033[92m"
 ANSI_YELLOW = "\033[93m"
 
-SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.expanduser("~/.config/pm")
 
 #### Manager objects
 
@@ -114,7 +114,7 @@ class Package:
         old_cwd = os.getcwd()
         self.installing_version = self._get_current_version()
         try:
-            os.chdir(os.path.join(SCRIPT_PATH, self.name))
+            os.chdir(os.path.join(CONFIG_PATH, self.name))
             self.func(self)
         finally:
             os.chdir(old_cwd)
@@ -133,7 +133,7 @@ class Package:
 
 class Manager:
     def __init__(self) -> None:
-        self._pkg_json_path = os.path.join(SCRIPT_PATH, "pkg.json")
+        self._pkg_json_path = os.path.join(CONFIG_PATH, "pkg.json")
         self._packages: Dict[str, Package] = {}
         self._package_versions: Dict[str, dict] = {}
         self._delete_later: List[str] = []
@@ -336,6 +336,9 @@ Terminal=false
             )
 
         os.symlink(source_path, target_path)
+
+    def link_in_dir(self, target: str, source_dir: str):
+        pass
 
     #### Downloads
 
