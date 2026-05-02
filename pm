@@ -141,6 +141,7 @@ class Manager:
         self._packages: Dict[str, Package] = {}
         self._package_versions: Dict[str, dict] = {}
         self._delete_later: List[str] = []
+        self.interactive: bool = False
 
     ### Public methods
 
@@ -170,12 +171,22 @@ class Manager:
 
     def run(self, args: list, **kwargs) -> subprocess.CompletedProcess:
         """Execute `*args`, `**kwargs` via `subprocess.run` and return the CompletedProcess."""
+        if self.interactive:
+            user_input = input(f"{ANSI_YELLOW}Run command: {' '.join(args)} [y/N] {ANSI_RESET}")
+            if user_input.lower() not in ("y", "yes"):
+                print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
+                sys.exit(1)
         self.log(" ".join(args))
         return subprocess.run(args, **kwargs)
 
     def bash(self, bash_source: str, **kwargs) -> bytes:
         """Executes bash with the *bash_source*, returning the stdout. The *bash_source* is automatically dedented before the call."""
         bash_source = textwrap.dedent(bash_source).strip()
+        if self.interactive:
+            user_input = input(f"{ANSI_YELLOW}Run bash: {bash_source} [y/N] {ANSI_RESET}")
+            if user_input.lower() not in ("y", "yes"):
+                print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
+                sys.exit(1)
         self.log(bash_source)
         return subprocess.check_output(["bash", "-c", bash_source], **kwargs)
 
@@ -484,12 +495,14 @@ def run_install(
     packages: List[str],
     tags: Optional[List[str]] = None,
     force: bool = False,
+    interactive: bool = False,
 ) -> None:
     if not packages and not tags:
         print("Error: No packages or tags specified.", file=sys.stderr)
         return
 
     target_names = list(m._packages.keys()) if not packages and tags else packages
+    m.interactive = interactive
 
     for name in target_names:
         if name not in m._packages:
@@ -624,6 +637,12 @@ def main() -> None:
         action="store_true",
         help="Force reinstall even if version unchanged",
     )
+    parser_install.add_argument(
+        "-i",
+        "--interactive",
+        action="store_true",
+        help="Prompt before executing any process during install",
+    )
 
     parser_update = subparsers.add_parser(
         "update", help="Update cached versions of packages"
@@ -668,7 +687,7 @@ def main() -> None:
         load_metadata(m)
 
         if args.subcommand == "install":
-            run_install(m, packages=args.packages, tags=args.tags, force=args.force)
+            run_install(m, packages=args.packages, tags=args.tags, force=args.force, interactive=args.interactive)
         elif args.subcommand == "update":
             run_update(m, packages=args.packages, tags=args.tags)
         elif args.subcommand == "list":
