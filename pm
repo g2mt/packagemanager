@@ -392,7 +392,7 @@ Terminal=false
             filename = os.path.basename(parsed.path) or uuid.uuid4().hex
             target = os.path.join(os.getcwd(), filename)
 
-        self.run(["curl", "-C", "-", "-o", target, source])
+        self.run(["curl", "-C", "-", "-L", "-o", target, source])
         return target
 
     def dl_git(self, target: str, source: str) -> None:
