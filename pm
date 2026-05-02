@@ -279,7 +279,7 @@ class Manager:
                 Name={pkg.readable_name}
                 StartupWMClass={pkg.readable_name}
                 Exec="{source}"
-                Icon="{icon_dst}"
+                Icon={icon_dst}
                 Type=Application
                 Terminal=false""")
             with open(desktop_path, "w") as f:
