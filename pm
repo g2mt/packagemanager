@@ -617,9 +617,12 @@ def run_update(*, packages: List[str], tags: Optional[List[str]] = None) -> None
     save_metadata()
 
 
-def run_list() -> None:
+def run_list(names_only: bool = False) -> None:
     for name in sorted(m._packages.keys()):
         pkg = m._packages[name]
+        if names_only:
+            print(name)
+            continue
         cached = pkg.cached_versions.cached
         installed = pkg.cached_versions.installed
         ver_display = cached if cached is not None else "N/A"
@@ -756,6 +759,11 @@ def main() -> None:
     )
 
     parser_list = subparsers.add_parser("list", help="List all packages with versions")
+    parser_list.add_argument(
+        "--names",
+        action="store_true",
+        help="Print only package names, without any formatting",
+    )
 
     parser_docs = subparsers.add_parser(
         "docs", help="Show documentation for Package and Manager classes"
@@ -796,7 +804,7 @@ def main() -> None:
         elif args.subcommand == "update":
             run_update(packages=args.packages, tags=args.tags)
         elif args.subcommand == "list":
-            run_list()
+            run_list(names_only=args.names)
         elif args.subcommand == "clean":
             run_clean()
         else:
