@@ -198,73 +198,6 @@ class Manager:
 
     #### Utils
 
-    def extract(self, target: str, source: str) -> None:
-        """Extract *source* archive into *target* directory, handling tar or 7z."""
-        target = os.path.normpath(target)
-        if tarfile.is_tarfile(source):
-            with tarfile.open(source) as tar:
-                members = tar.getmembers()
-                # Determine the set of top-level directory/file names from archive entries
-                top_level = {m.name.split("/")[0] for m in members}
-
-                # If multiple top-level entries exist, extract everything directly into target dir
-                if len(top_level) > 1:
-                    os.makedirs(target, exist_ok=True)
-                    tar.extractall(target)
-                elif len(top_level) == 1:
-                    # Only one top-level entry exists; decide if it's a directory or a file
-                    root_name = list(top_level)[0]
-                    root_member = next(
-                        m for m in members if m.name.startswith(root_name)
-                    )
-
-                    if root_member.isdir():
-                        # The single top-level entry is a directory
-                        with tempfile.TemporaryDirectory() as tmp:
-                            tar.extractall(tmp)
-                            os.makedirs(target, exist_ok=True)
-                            print(os.path.join(tmp, root_name), target)
-                            input("!!!!")
-                            shutil.move(
-                                os.path.join(tmp, root_name), # src
-                                target,
-                            )
-                    else:
-                        # The single top-level entry is a file (not a directory);
-                        # extract directly into target.
-                        os.makedirs(target, exist_ok=True)
-                        tar.extractall(target)
-        else:
-            # Use 7z for non-tar files
-            list_proc = self.run(
-                ["7z", "l", "-ba", "-slt", source], capture_output=True, text=True
-            )
-            files = [
-                line.split("=")[1].strip()
-                for line in list_proc.stdout.splitlines()
-                if line.startswith("Path =")
-            ][1:]
-            top_level = {f.split(os.sep)[0] for f in files}
-
-            if len(top_level) > 1:
-                self.run(["7z", "x", source, f"-o{target}"])
-            elif len(top_level) == 1:
-                root_name = list(top_level)[0]
-                # Check if the single top level item is a directory by looking for children
-                is_dir = any(f != root_name and f.startswith(root_name) for f in files)
-
-                if is_dir:
-                    with tempfile.TemporaryDirectory() as tmp:
-                        self.run(["7z", "x", source, f"-o{tmp}"])
-                        os.makedirs(target, exist_ok=True)
-                        src_dir = os.path.join(tmp, root_name)
-                        for item in os.listdir(src_dir):
-                            shutil.move(
-                                os.path.join(src_dir, item), os.path.join(target, item)
-                            )
-                else:
-                    self.run(["7z", "x", source, f"-o{target}"])
-
     def install_appimage(self, pkg: Package, source: str) -> None:
         """
         Install an AppImage package from *source* file. The AppImage is extracted and a .desktop entry is created.
@@ -325,14 +258,14 @@ class Manager:
             icon_dst = os.path.join(icon_dir, f"{pkg.name}{icon_ext}")
             shutil.copy2(icon_src, icon_dst)
 
-            desktop_content = f"""[Desktop Entry]
-Name={pkg.readable_name}
-StartupWMClass={pkg.readable_name}
-Exec="{source}"
-Icon={icon_dst}
-Type=Application
-Terminal=false
-"""
+            desktop_content = textwrap.dedent(f"""
+                [Desktop Entry]
+                Name={pkg.readable_name}
+                StartupWMClass={pkg.readable_name}
+                Exec="{source}"
+                Icon={icon_dst}
+                Type=Application
+                Terminal=false""")
             with open(desktop_path, "w") as f:
                 f.write(desktop_content)
         finally:
@@ -367,6 +300,57 @@ Terminal=false
             source_path = os.path.join(source_dir, entry)
             target_path = os.path.join(target, entry)
             self.link(target_path, source_path)
+
+    #### Extract
+
+    def _extract_tar(self, target: str, source: str):
+        target = os.path.normpath(target)
+        with tarfile.open(source) as tar:
+            members = tar.getmembers()
+            top_level: Optional[str] = None
+            top_level_is_dir = False
+            for m in tar.getmembers():
+                m_parts = Path(m.name).parts
+                m_top_level = m_parts[0]
+                if top_level is None:
+                    top_level = m_top_level
+                    if m.isdir():
+                        # is dir when the top level directory itself is the name
+                        top_level_is_dir = len(m_parts) == 1
+                    else:
+                        # always dir if member is a non directory
+                        top_level_is_dir = True
+                elif top_level != m_top_level: # multiple top level paths
+                    top_level = None
+                    break
+
+            if top_level is None:
+                # multiple top-level entries exist
+                os.makedirs(target, exist_ok=True)
+                tar.extractall(target)
+            elif top_level_is_dir:
+                with tempfile.TemporaryDirectory() as tmp:
+                    tar.extractall(tmp)
+                    (Path(tmp) / top_level).move(target)
+            else:
+                os.makedirs(target, exist_ok=True)
+                tar.extractall(target)
+
+    def _extract_nontar(self, target: str, source: str):
+        target = os.path.normpath(target)
+        with tempfile.TemporaryDirectory() as tmp:
+            self.run(["7z", "x", source, f"-o{target}"])
+            if ...: # one top-level directory in tmp
+                (Path(tmp) / top_level).move(target)
+            else: # move all in tmp to target
+                ...
+
+    def extract(self, target: str, source: str) -> None:
+        """Extract *source* archive into *target* directory using tarlib and falling back to the 7z command."""
+        if tarfile.is_tarfile(source):
+            return self._extract_tar(target, source)
+        else:
+            return self._extract_nontar(target, source)
 
     #### Downloads
 
