@@ -129,6 +129,7 @@ class Package:
         os.makedirs(package_dir, exist_ok=True)
         if (
             self.clean_before_install
+            and self.cached_versions.installed is not None
             and len(os.listdir(package_dir)) > 0
             and m._interactive_ask("Clean before install", package_dir)
         ):
