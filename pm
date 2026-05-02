@@ -338,7 +338,12 @@ Terminal=false
         os.symlink(source_path, target_path)
 
     def link_in_dir(self, target: str, source_dir: str):
-        pass
+        """Create symlinks for all files in *source_dir* into *target* directory."""
+        os.makedirs(target, exist_ok=True)
+        for entry in os.listdir(source_dir):
+            source_path = os.path.join(source_dir, entry)
+            target_path = os.path.join(target, entry)
+            self.link(target_path, source_path)
 
     #### Downloads
 
