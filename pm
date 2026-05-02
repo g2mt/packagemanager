@@ -657,6 +657,27 @@ def run_docs() -> None:
     print("\n".join(lines))
 
 
+def run_clean() -> None:
+    """Delete all files from delete_later list after prompting user."""
+    if not m._delete_later:
+        print("No files to clean.")
+        return
+    print("The following files will be deleted:")
+    for path in m._delete_later:
+        print(f"  {path}")
+    answer = input("Are you sure? [y/N] ").lower()
+    if answer not in ('y', 'yes'):
+        print("Clean cancelled.")
+        return
+    for path in m._delete_later:
+        if os.path.exists(path):
+            os.remove(path)
+            print(f"Deleted {path}")
+    m._delete_later.clear()
+    save_metadata()
+    print("Clean complete.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run a config file with Manager exposed as 'm'"
@@ -721,6 +742,10 @@ def main() -> None:
         "docs", help="Show documentation for Package and Manager classes"
     )
 
+    parser_clean = subparsers.add_parser(
+        "clean", help="Delete all files marked for deletion (in delete_later)"
+    )
+
     args = parser.parse_args()
 
     # Handle the docs subcommand without requiring a config file.
@@ -754,6 +779,8 @@ def main() -> None:
             run_update(packages=args.packages, tags=args.tags)
         elif args.subcommand == "list":
             run_list()
+        elif args.subcommand == "clean":
+            run_clean()
         else:
             if args.subcommand is None:
                 print("No subcommand specified.", file=sys.stderr)
