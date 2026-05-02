@@ -177,11 +177,11 @@ class Manager:
     def _interactive_ask(self, action: str, arg: str) -> bool:
         if not self._interactive:
             return True
-        prompt = f"{ANSI_YELLOW}{action}{ANSI_RESET}"
+        prompt = f"{ANSI_YELLOW}{action}:{ANSI_RESET}"
         if "\n" in arg:
             prompt += f"\n{arg}\n"
         else:
-            prompt += " "
+            prompt += f" {arg} "
         prompt += "[y/N] "
         if input(prompt).lower() not in ("y", "yes"):
             print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
