@@ -307,7 +307,7 @@ class Manager:
 
         os.symlink(source_path, target_path)
 
-    def link_in_dir(self, target: str, source_dir: str):
+    def link_in_dir(self, target: str, source_dir: str, *, executables_only: bool = False):
         """Create symlinks for all files in *source_dir* into *target* directory."""
         os.makedirs(target, exist_ok=True)
         for entry in os.listdir(source_dir):
@@ -325,6 +325,8 @@ class Manager:
             top_level_is_dir = False
             for m in tar.getmembers():
                 m_parts = Path(m.name).parts
+                if len(m_parts) == 0:
+                    continue
                 m_top_level = m_parts[0]
                 if top_level is None:
                     top_level = m_top_level
