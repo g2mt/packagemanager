@@ -216,13 +216,11 @@ class Manager:
         """
         source = os.path.realpath(source)
 
-        # Ensure the AppImage file is executable (chmod +x equivalent)
         if os.path.isfile(source):
             current_mode = os.stat(source).st_mode
             os.chmod(source, current_mode | stat.S_IXUSR)
         else:
-            print(f"File not found: {source}", file=sys.stderr)
-            return
+            raise FileNotFoundError(source)
 
         desktop_dir = os.path.expanduser("~/.local/share/applications")
         icon_dir = os.path.expanduser("~/.local/share/icons")
@@ -280,7 +278,7 @@ class Manager:
                 Name={pkg.readable_name}
                 StartupWMClass={pkg.readable_name}
                 Exec="{source}"
-                Icon={icon_dst}
+                Icon="{icon_dst}"
                 Type=Application
                 Terminal=false""")
             with open(desktop_path, "w") as f:
