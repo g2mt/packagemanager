@@ -339,11 +339,17 @@ class Manager:
     def _extract_nontar(self, target: str, source: str):
         target = os.path.normpath(target)
         with tempfile.TemporaryDirectory() as tmp:
-            self.run(["7z", "x", source, f"-o{target}"])
-            if ...: # one top-level directory in tmp
-                (Path(tmp) / top_level).move(target)
-            else: # move all in tmp to target
-                ...
+            self.run(["7z", "x", source, f"-o{tmp}"])
+            items = os.listdir(tmp)
+
+            if len(items) == 1 and os.path.isdir(os.path.join(tmp, items[0])):
+                # Single top-level directory: rename it to target
+                (Path(tmp) / items[0]).rename(target)
+            else:
+                # Multiple top-level entries or a single file: extract into target
+                os.makedirs(target, exist_ok=True)
+                for item in items:
+                    shutil.move(os.path.join(tmp, item), os.path.join(target, item))
 
     def extract(self, target: str, source: str) -> None:
         """Extract *source* archive into *target* directory using tarlib and falling back to the 7z command."""
