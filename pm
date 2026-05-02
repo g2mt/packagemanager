@@ -191,6 +191,10 @@ class Manager:
         """Print *s* to stdout in gray."""
         print(f"{ANSI_GRAY}{s}{ANSI_RESET}")
 
+    def warn(self, s: str):
+        """Print *s* to stdout in yellow."""
+        print(f"{ANSI_YELLOW}{s}{ANSI_RESET}")
+
     def _interactive_ask(
         self, action: str, arg: Optional[str] = None, *, always: bool = False
     ) -> bool:
@@ -496,14 +500,12 @@ class Manager:
             )
             if newest_tag is not None and current_tag != newest_tag:
                 if current_tag is not None:
-                    print(
-                        f"Warning: current checked out tag {current_tag} is not the newest tag {newest_tag} for repo {source}",
-                        file=sys.stderr,
+                    self.warn(
+                        f"Warning: current checked out tag {current_tag} is not the newest tag {newest_tag} for repo {source}"
                     )
                 else:
-                    print(
-                        f"Warning: HEAD not at a tag; newest tag is {newest_tag} for repo {source}",
-                        file=sys.stderr,
+                    self.warn(
+                        f"Warning: HEAD not at a tag; newest tag is {newest_tag} for repo {source}"
                     )
 
     def dl_text(self, source: str) -> str:
@@ -549,7 +551,7 @@ def save_metadata() -> None:
         with open(m._pkg_json_path, "w") as f:
             json.dump(data, f, indent=4)
     except Exception as e:
-        print(f"Warning: failed to save version data: {e}", file=sys.stderr)
+        m.warn(f"Warning: failed to save version data: {e}")
 
 
 #### Commands
