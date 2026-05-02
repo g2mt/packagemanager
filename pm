@@ -678,6 +678,12 @@ def run_clean() -> None:
     print("Clean complete.")
 
 
+def run_edit(config_path: str) -> None:
+    """Open the config file in $EDITOR."""
+    editor = os.environ.get('EDITOR', 'vi')
+    subprocess.call([editor, config_path])
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run a config file with Manager exposed as 'm'"
@@ -746,11 +752,17 @@ def main() -> None:
         "clean", help="Delete all files marked for deletion (in delete_later)"
     )
 
+    parser_edit = subparsers.add_parser(
+        "edit", help="Open the config file in $EDITOR"
+    )
+
     args = parser.parse_args()
 
     # Handle the docs subcommand without requiring a config file.
     if args.subcommand == "docs":
         return run_docs()
+    if args.subcommand == "edit":
+        return run_edit(args.config)
 
     if args.config:
         global m
