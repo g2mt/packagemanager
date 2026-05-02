@@ -453,7 +453,7 @@ m: Optional[Manager] = None
 #### Metadata
 
 
-def load_metadata(m: Manager) -> None:
+def load_metadata() -> None:
     if os.path.exists(m._pkg_json_path):
         try:
             with open(m._pkg_json_path, "r") as f:
@@ -473,7 +473,7 @@ def load_metadata(m: Manager) -> None:
         m._delete_later = []
 
 
-def save_metadata(m: Manager) -> None:
+def save_metadata() -> None:
     versions = {}
     for name, pkg in m._packages.items():
         versions[name] = pkg.cached_versions
@@ -492,7 +492,6 @@ def save_metadata(m: Manager) -> None:
 
 
 def run_install(
-    m: Manager,
     *,
     packages: List[str],
     tags: Optional[List[str]] = None,
@@ -515,11 +514,11 @@ def run_install(
             continue
         pkg.install(force=force)
 
-    save_metadata(m)
+    save_metadata()
 
 
 def run_update(
-    m: Manager, *, packages: List[str], tags: Optional[List[str]] = None
+    *, packages: List[str], tags: Optional[List[str]] = None
 ) -> None:
     if not packages and not tags:
         print("Error: No packages or tags specified.", file=sys.stderr)
@@ -549,10 +548,10 @@ def run_update(
             "installed": pkg.cached_versions.installed,
             "cached": pkg.cached_versions.cached,
         }
-    save_metadata(m)
+    save_metadata()
 
 
-def run_list(m: Manager) -> None:
+def run_list() -> None:
     for name in sorted(m._packages.keys()):
         pkg = m._packages[name]
         cached = pkg.cached_versions.cached
@@ -675,6 +674,7 @@ def main() -> None:
         return run_docs()
 
     if args.config:
+        global m
         m = Manager()
         sub_globals = {"m": m}
         try:
@@ -686,14 +686,14 @@ def main() -> None:
             sys.exit(1)
 
         # Load metadata after config is executed so packages are registered
-        load_metadata(m)
+        load_metadata()
 
         if args.subcommand == "install":
-            run_install(m, packages=args.packages, tags=args.tags, force=args.force, interactive=args.interactive)
+            run_install(packages=args.packages, tags=args.tags, force=args.force, interactive=args.interactive)
         elif args.subcommand == "update":
-            run_update(m, packages=args.packages, tags=args.tags)
+            run_update(packages=args.packages, tags=args.tags)
         elif args.subcommand == "list":
-            run_list(m)
+            run_list()
         else:
             if args.subcommand is None:
                 print("No subcommand specified.", file=sys.stderr)
