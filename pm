@@ -176,13 +176,13 @@ class Manager:
 
     #### Process execution
 
-    def run(self, args: list, **kwargs) -> subprocess.CompletedProcess:
+    def run(self, args: list, **kwargs) -> Optional[subprocess.CompletedProcess]:
         """Execute `*args`, `**kwargs` via `subprocess.run` and return the CompletedProcess."""
         if self._interactive:
-            user_input = input(f"{ANSI_YELLOW}Run command:{ANSI_RESET} {' '.join(args)} [y/N] ")
+            user_input = input(f"{ANSI_YELLOW}Run command:{ANSI_RESET}\n{' '.join(args)}\n[y/N] ")
             if user_input.lower() not in ("y", "yes"):
                 print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
-                sys.exit(1)
+                return None
         self.log(" ".join(args))
         return subprocess.run(args, **kwargs)
 
@@ -190,10 +190,9 @@ class Manager:
         """Executes bash with the *bash_source*, returning the stdout. The *bash_source* is automatically dedented before the call."""
         bash_source = textwrap.dedent(bash_source).strip()
         if self._interactive:
-            user_input = input(f"{ANSI_YELLOW}Run bash: {bash_source} [y/N] {ANSI_RESET}")
+            user_input = input(f"{ANSI_YELLOW}Run bash:{ANSI_RESET}\n{bash_source}\n[y/N]")
             if user_input.lower() not in ("y", "yes"):
                 print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
-                sys.exit(1)
         self.log(bash_source)
         return subprocess.check_output(["bash", "-c", bash_source], **kwargs)
 
@@ -219,20 +218,14 @@ class Manager:
                     )
 
                     if root_member.isdir():
-                        # The single top-level entry is a directory – extract into a temp location,
-                        # then move its contents into the target directory so that inner files
-                        # end up directly in target, not inside a subfolder.
-                        import tempfile
-
+                        # The single top-level entry is a directory
                         with tempfile.TemporaryDirectory() as tmp:
                             tar.extractall(tmp)
                             os.makedirs(target, exist_ok=True)
-                            src_dir = os.path.join(tmp, root_name)
-                            for item in os.listdir(src_dir):
-                                os.rename(
-                                    os.path.join(src_dir, item),
-                                    os.path.join(target, item),
-                                )
+                            shutil.move(
+                                os.path.join(tmp, root_name), # src
+                                target,
+                            )
                     else:
                         # The single top-level entry is a file (not a directory);
                         # extract directly into target.
@@ -258,14 +251,12 @@ class Manager:
                 is_dir = any(f != root_name and f.startswith(root_name) for f in files)
 
                 if is_dir:
-                    import tempfile
-
                     with tempfile.TemporaryDirectory() as tmp:
                         self.run(["7z", "x", source, f"-o{tmp}"])
                         os.makedirs(target, exist_ok=True)
                         src_dir = os.path.join(tmp, root_name)
                         for item in os.listdir(src_dir):
-                            os.rename(
+                            shutil.move(
                                 os.path.join(src_dir, item), os.path.join(target, item)
                             )
                 else:
