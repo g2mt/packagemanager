@@ -213,7 +213,7 @@ class Manager:
                 prompt += f" {arg} "
         else:
             prompt += " "
-        prompt += "[y/N] "
+        prompt += f"{ANSI_YELLOW}[y/N]{ANSI_RESET} "
         if input(prompt).lower() not in ("y", "yes"):
             return False
         return True
@@ -388,7 +388,11 @@ class Manager:
             elif top_level_is_dir:
                 with tempfile.TemporaryDirectory() as tmp:
                     tar.extractall(tmp)
-                    (Path(tmp) / top_level).move(target)
+                    os.makedirs(target, exist_ok=True)
+                    tmp_top_level = os.path.join(tmp, top_level)
+                    for item in os.listdir(tmp_top_level):
+                        # manually move toplevel/* to target/*
+                        shutil.move(os.path.join(tmp_top_level, item), os.path.join(target, item))
             else:
                 os.makedirs(target, exist_ok=True)
                 tar.extractall(target)
@@ -399,9 +403,13 @@ class Manager:
             self.run(["7z", "x", source, f"-o{tmp}"])
             items = os.listdir(tmp)
 
-            if len(items) == 1 and os.path.isdir(os.path.join(tmp, items[0])):
+            tmp_top_level = os.path.join(tmp, items[0])
+            if len(items) == 1 and os.path.isdir(tmp_top_level):
                 # Single top-level directory: move it to target
-                (Path(tmp) / items[0]).move(target)
+                os.makedirs(target, exist_ok=True)
+                for item in os.listdir(tmp_top_level):
+                    # manually move toplevel/* to target/*
+                    shutil.move(os.path.join(tmp_top_level, item), os.path.join(target, item))
             else:
                 # Multiple top-level entries or a single file: extract into target
                 os.makedirs(target, exist_ok=True)
