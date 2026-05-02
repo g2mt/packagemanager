@@ -12,6 +12,7 @@ import uuid
 import pydoc
 import inspect
 import urllib.request
+from urllib.parse import urlparse
 import shutil
 import tempfile
 import glob
@@ -386,9 +387,10 @@ Terminal=false
     def dl(self, target: Optional[str], source: str) -> str:
         """Download file from *source* URL to *target* file (or a temp file if *target* is None)."""
         if target is None:
-            random_name = uuid.uuid4().hex
-            target = os.path.join(os.getcwd(), random_name)
-            self._delete_later.append(target)
+            # Attempt to extract filename from the source URL
+            parsed = urlparse(source)
+            filename = os.path.basename(parsed.path) or uuid.uuid4().hex
+            target = os.path.join(os.getcwd(), filename)
 
         self.run(["curl", "-C", "-", "-o", target, source])
         return target
