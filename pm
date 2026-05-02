@@ -195,7 +195,9 @@ class Manager:
         """Print *s* to stdout in gray."""
         print(f"{ANSI_GRAY}{s}{ANSI_RESET}")
 
-    def _interactive_ask(self, action: str, arg: Optional[str] = None, *, always: bool = False) -> bool:
+    def _interactive_ask(
+        self, action: str, arg: Optional[str] = None, *, always: bool = False
+    ) -> bool:
         if not always and not self._interactive:
             return True
         prompt = f"{ANSI_YELLOW}{action}:{ANSI_RESET}"
@@ -317,7 +319,9 @@ class Manager:
             if target_path.resolve() == source_path:
                 return
             else:
-                if self._interactive_ask("Remove existing link", str(target_path), always=True):
+                if self._interactive_ask(
+                    "Remove existing link", str(target_path), always=True
+                ):
                     target_path.unlink(missing_ok=True)
                 else:
                     raise RuntimeError(
@@ -686,7 +690,7 @@ def run_clean() -> None:
 
 def run_edit(config_path: str) -> None:
     """Open the config file in $EDITOR."""
-    editor = os.environ.get('EDITOR', 'vi')
+    editor = os.environ.get("EDITOR", "vi")
     subprocess.call([editor, config_path])
 
 
@@ -758,9 +762,7 @@ def main() -> None:
         "clean", help="Delete all files marked for deletion (in delete_later)"
     )
 
-    parser_edit = subparsers.add_parser(
-        "edit", help="Open the config file in $EDITOR"
-    )
+    parser_edit = subparsers.add_parser("edit", help="Open the config file in $EDITOR")
 
     args = parser.parse_args()
 
