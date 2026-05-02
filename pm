@@ -76,6 +76,7 @@ class Package:
     func: Callable[["Package"], None]
     name: str
     tags: List[str]
+    readable_name: Optional[str]
     installing_version: Optional[str]
     cached_versions: CachedVersionsSchema
 
@@ -85,6 +86,7 @@ class Package:
         *,
         name: str,
         tags: Optional[List[str]] = None,
+        readable_name: Optional[str] = None,
         version: Optional[Callable[["Package"], str] | str] =None,
     ) -> None:
         """Initialize Package.
@@ -94,11 +96,13 @@ class Package:
                   It receives the Package instance.
             name: The package name, used for directory lookup and metadata.
             tags: Optional list of tags for filtering packages.
+            readable_name: Optional human-readable name; defaults to *name* if not provided.
             version: Optional version string or callable returning version string.
         """
         self.func = func
         self.name = name
         self.tags: List[str] = tags if tags is not None else []
+        self.readable_name = readable_name if readable_name is not None else name
         self.installing_version = None
         self.cached_versions = CachedVersionsSchema()
         self._version_expr = version  # value or callable
