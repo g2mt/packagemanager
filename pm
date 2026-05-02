@@ -122,6 +122,7 @@ class Package:
         package_dir = os.path.join(m.datadir, self.name)
         os.makedirs(package_dir, exist_ok=True)
         try:
+            m.log(f"cd {package_dir}")
             os.chdir(package_dir)
             self.func(self)
         finally:
@@ -184,7 +185,6 @@ class Manager:
             prompt += f" {arg} "
         prompt += "[y/N] "
         if input(prompt).lower() not in ("y", "yes"):
-            print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
             return False
         return True
 
