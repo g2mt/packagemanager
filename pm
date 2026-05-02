@@ -174,25 +174,34 @@ class Manager:
         """Print *s* to stdout in gray."""
         print(f"{ANSI_GRAY}{s}{ANSI_RESET}")
 
+    def _interactive_ask(self, action: str, arg: str) -> bool:
+        if not self._interactive:
+            return True
+        prompt = f"{ANSI_YELLOW}{action}{ANSI_RESET}"
+        if "\n" in arg:
+            prompt += f"\n{arg}\n"
+        else:
+            prompt += " "
+        prompt += "[y/N] "
+        if input(prompt).lower() not in ("y", "yes"):
+            print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
+            return False
+        return True
+
     #### Process execution
 
-    def run(self, args: list, **kwargs) -> Optional[subprocess.CompletedProcess]:
+    def run(self, args: list, *, interactive: bool=True, **kwargs) -> Optional[subprocess.CompletedProcess]:
         """Execute `*args`, `**kwargs` via `subprocess.run` and return the CompletedProcess."""
-        if self._interactive:
-            user_input = input(f"{ANSI_YELLOW}Run command:{ANSI_RESET}\n{' '.join(args)}\n[y/N] ")
-            if user_input.lower() not in ("y", "yes"):
-                print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
-                return None
+        if interactive and not self._interactive_ask("Run command", " ".join(args)):
+            return None
         self.log(" ".join(args))
         return subprocess.run(args, **kwargs)
 
     def bash(self, bash_source: str, **kwargs) -> bytes:
         """Executes bash with the *bash_source*, returning the stdout. The *bash_source* is automatically dedented before the call."""
         bash_source = textwrap.dedent(bash_source).strip()
-        if self._interactive:
-            user_input = input(f"{ANSI_YELLOW}Run bash:{ANSI_RESET}\n{bash_source}\n[y/N]")
-            if user_input.lower() not in ("y", "yes"):
-                print(f"{ANSI_YELLOW}Cancelled by user.{ANSI_RESET}")
+        if not self._interactive_ask("Run bash", bash_source):
+            return None
         self.log(bash_source)
         return subprocess.check_output(["bash", "-c", bash_source], **kwargs)
 
@@ -353,6 +362,8 @@ class Manager:
 
     def extract(self, target: str, source: str) -> None:
         """Extract *source* archive into *target* directory using tarlib and falling back to the 7z command."""
+        if not self._interactive_ask("Extract", f"{source} to {target}"):
+            return None
         if tarfile.is_tarfile(source):
             return self._extract_tar(target, source)
         else:
@@ -390,7 +401,7 @@ class Manager:
     def dl_git(self, target: str, source: str) -> None:
         """Clone or update git repository in *source* URL into *target* directory and pull to latest commit."""
         if not os.path.exists(target):
-            self.run(["git", "clone", "--filter=tree:0", source, target])
+            self.run(["git", "clone", "--filter=tree:0", source, target], interactive=False)
             return
         if not os.path.isdir(os.path.join(target, ".git")):
             raise RuntimeError(f"Target {target} exists but is not a git repository")
@@ -398,6 +409,7 @@ class Manager:
             ["git", "-C", target, "rev-parse", "--abbrev-ref", "HEAD"],
             capture_output=True,
             text=True,
+            interactive=False,
         )
         current_branch = branch_proc.stdout.strip()
         if current_branch == "master":
@@ -416,14 +428,14 @@ class Manager:
                     "refs/tags",
                 ],
                 capture_output=True,
-                text=True,
+                text=True, interactive=False
             )
             newest_tag = newest_tag_proc.stdout.strip().splitlines()
             newest_tag = newest_tag[0] if newest_tag else None
             current_tag_proc = self.run(
                 ["git", "-C", target, "describe", "--tags", "--exact-match", "HEAD"],
                 capture_output=True,
-                text=True,
+                text=True, interactive=False
             )
             current_tag = (
                 current_tag_proc.stdout.strip()
