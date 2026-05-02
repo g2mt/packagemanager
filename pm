@@ -114,7 +114,7 @@ class Package:
         old_cwd = os.getcwd()
         self.installing_version = self._get_current_version()
         try:
-            os.chdir(os.path.join(CONFIG_PATH, self.name))
+            os.chdir(os.path.join(DATA_PATH, self.name))
             self.func(self)
         finally:
             os.chdir(old_cwd)
@@ -133,7 +133,7 @@ class Package:
 
 class Manager:
     def __init__(self) -> None:
-        self._pkg_json_path = os.path.join(CONFIG_PATH, "pkg.json")
+        self._pkg_json_path = os.path.join(DATA_PATH, "pkg.json")
         self._packages: Dict[str, Package] = {}
         self._package_versions: Dict[str, dict] = {}
         self._delete_later: List[str] = []
@@ -252,10 +252,9 @@ class Manager:
             return
 
         home = os.path.expanduser("~")
-        app_name = pkg.name
         desktop_dir = os.path.join(home, ".local", "share", "applications")
         icon_dir = os.path.join(home, ".local", "share", "icons")
-        desktop_path = os.path.join(desktop_dir, f"{app_name}.desktop")
+        desktop_path = os.path.join(desktop_dir, f"{pkg.name}.desktop")
 
         os.makedirs(desktop_dir, exist_ok=True)
         os.makedirs(icon_dir, exist_ok=True)
@@ -299,12 +298,12 @@ class Manager:
 
             icon_src = icons[selection - 1]
             icon_ext = os.path.splitext(icon_src)[1]  # e.g. .png
-            icon_dst = os.path.join(icon_dir, f"{app_name}{icon_ext}")
+            icon_dst = os.path.join(icon_dir, f"{pkg.name}{icon_ext}")
             shutil.copy2(icon_src, icon_dst)
 
             desktop_content = f"""[Desktop Entry]
-Name={app_name}
-StartupWMClass={app_name}
+Name={pkg.readable_name}
+StartupWMClass={pkg.readable_name}
 Exec="{source}"
 Icon={icon_dst}
 Type=Application
@@ -603,7 +602,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run a config file with Manager exposed as 'm'"
     )
-    parser.add_argument("--config", help="Path to the config file (e.g., config.py)")
+    parser.add_argument("--config", help="Path to the config file (e.g., config.py)",
+                        default=os.path.join(CONFIG_PATH, "config.py"))
     subparsers = parser.add_subparsers(dest="subcommand")
 
     parser_install = subparsers.add_parser("install", help="Install given packages")
