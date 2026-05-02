@@ -448,6 +448,8 @@ Terminal=false
             return response.read().decode()
 
 
+m: Optional[Manager] = None
+
 #### Metadata
 
 
