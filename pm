@@ -89,7 +89,7 @@ class Package:
         name: str,
         tags: Optional[List[str]] = None,
         readable_name: Optional[str] = None,
-        version: Optional[Callable[["Package"], str] | str] =None,
+        version: Optional[Callable[["Package"], str] | str] = None,
     ) -> None:
         """Initialize Package.
 
@@ -135,7 +135,7 @@ class Package:
         if self._version_expr is None:
             return None
         if callable(self._version_expr):
-            return self._version_expr(self) 
+            return self._version_expr(self)
         return self._version_expr
 
 
@@ -190,7 +190,9 @@ class Manager:
 
     #### Process execution
 
-    def run(self, args: list, *, interactive: bool=True, **kwargs) -> Optional[subprocess.CompletedProcess]:
+    def run(
+        self, args: list, *, interactive: bool = True, **kwargs
+    ) -> Optional[subprocess.CompletedProcess]:
         """Execute `*args`, `**kwargs` via `subprocess.run` and return the CompletedProcess."""
         if interactive and not self._interactive_ask("Run command", " ".join(args)):
             return None
@@ -329,7 +331,7 @@ class Manager:
                     else:
                         # always dir if member is a non directory
                         top_level_is_dir = True
-                elif top_level != m_top_level: # multiple top level paths
+                elif top_level != m_top_level:  # multiple top level paths
                     top_level = None
                     break
 
@@ -401,7 +403,9 @@ class Manager:
     def dl_git(self, target: str, source: str) -> None:
         """Clone or update git repository in *source* URL into *target* directory and pull to latest commit."""
         if not os.path.exists(target):
-            self.run(["git", "clone", "--filter=tree:0", source, target], interactive=False)
+            self.run(
+                ["git", "clone", "--filter=tree:0", source, target], interactive=False
+            )
             return
         if not os.path.isdir(os.path.join(target, ".git")):
             raise RuntimeError(f"Target {target} exists but is not a git repository")
@@ -428,14 +432,16 @@ class Manager:
                     "refs/tags",
                 ],
                 capture_output=True,
-                text=True, interactive=False
+                text=True,
+                interactive=False,
             )
             newest_tag = newest_tag_proc.stdout.strip().splitlines()
             newest_tag = newest_tag[0] if newest_tag else None
             current_tag_proc = self.run(
                 ["git", "-C", target, "describe", "--tags", "--exact-match", "HEAD"],
                 capture_output=True,
-                text=True, interactive=False
+                text=True,
+                interactive=False,
             )
             current_tag = (
                 current_tag_proc.stdout.strip()
@@ -529,9 +535,7 @@ def run_install(
     save_metadata()
 
 
-def run_update(
-    *, packages: List[str], tags: Optional[List[str]] = None
-) -> None:
+def run_update(*, packages: List[str], tags: Optional[List[str]] = None) -> None:
     if not packages and not tags:
         print("Error: No packages or tags specified.", file=sys.stderr)
         return
@@ -596,21 +600,21 @@ def run_docs() -> None:
             for dl in doc_lines:
                 lines.append("  " + dl)
         # Include non‑private field annotations
-        if hasattr(cls, '__annotations__'):
+        if hasattr(cls, "__annotations__"):
             for attr_name, attr_type in cls.__annotations__.items():
-                if attr_name.startswith('_'):
+                if attr_name.startswith("_"):
                     continue
-                if hasattr(attr_type, '__origin__'):
+                if hasattr(attr_type, "__origin__"):
                     # generic alias e.g. List[str], Optional[str], Callable
                     type_str = str(attr_type)
                 else:
                     # simple type (str, int, custom class, etc.)
-                    type_str = getattr(attr_type, '__name__', str(attr_type))
+                    type_str = getattr(attr_type, "__name__", str(attr_type))
                 lines.append(f"  {attr_name}: {type_str}")
         for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
             if method.__module__ != __name__:
                 continue
-            if name.startswith("_"): # skip private methods
+            if name.startswith("_"):  # skip private methods
                 continue
             sig_str = str(inspect.signature(method))
             lines.append(f"  {name}{sig_str}")
@@ -622,13 +626,15 @@ def run_docs() -> None:
     print("\n".join(lines))
 
 
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run a config file with Manager exposed as 'm'"
     )
-    parser.add_argument("--config", help="Path to the config file (e.g., config.py)",
-                        default=os.path.join(CONFIG_PATH, "config.py"))
+    parser.add_argument(
+        "--config",
+        help="Path to the config file (e.g., config.py)",
+        default=os.path.join(CONFIG_PATH, "config.py"),
+    )
     subparsers = parser.add_subparsers(dest="subcommand")
 
     parser_install = subparsers.add_parser("install", help="Install given packages")
@@ -701,7 +707,12 @@ def main() -> None:
         load_metadata()
 
         if args.subcommand == "install":
-            run_install(packages=args.packages, tags=args.tags, force=args.force, interactive=args.interactive)
+            run_install(
+                packages=args.packages,
+                tags=args.tags,
+                force=args.force,
+                interactive=args.interactive,
+            )
         elif args.subcommand == "update":
             run_update(packages=args.packages, tags=args.tags)
         elif args.subcommand == "list":
