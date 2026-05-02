@@ -400,8 +400,8 @@ class Manager:
             return match.group(1)
         raise RuntimeError(f"tag {tag} does not match pattern /{re_pattern}/")
 
-    def dl(self, target: Optional[str], source: str) -> str:
-        """Download file from *source* URL to *target* file (or a temp file if *target* is None)."""
+    def dl(self, target: Optional[str], source: str, *, delete_later: bool = False) -> str:
+        """Download file from *source* URL to *target* file (or a temp file if *target* is None) and optionally mark for later deletion."""
         if target is None:
             # Attempt to extract filename from the source URL
             parsed = urlparse(source)
@@ -412,6 +412,8 @@ class Manager:
             return target
 
         self.run(["curl", "-C", "-", "-L", "-o", target, source])
+        if delete_later:
+            self._delete_later.append(target)
         return target
 
     def dl_git(self, target: str, source: str) -> None:
