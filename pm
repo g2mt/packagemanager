@@ -133,6 +133,7 @@ class Package:
             and len(os.listdir(package_dir)) > 0
             and m._interactive_ask("Clean before install", package_dir)
         ):
+            m.log(f"Cleaning {package_dir}")
             for entry in os.listdir(package_dir):
                 full_path = os.path.join(package_dir, entry)
                 if os.path.isdir(full_path):
@@ -194,14 +195,17 @@ class Manager:
         """Print *s* to stdout in gray."""
         print(f"{ANSI_GRAY}{s}{ANSI_RESET}")
 
-    def _interactive_ask(self, action: str, arg: str) -> bool:
-        if not self._interactive:
+    def _interactive_ask(self, action: str, arg: Optional[str] = None, *, always: bool = False) -> bool:
+        if not always and not self._interactive:
             return True
         prompt = f"{ANSI_YELLOW}{action}:{ANSI_RESET}"
-        if "\n" in arg:
-            prompt += f"\n{arg}\n"
+        if arg is not None:
+            if "\n" in arg:
+                prompt += f"\n{arg}\n"
+            else:
+                prompt += f" {arg} "
         else:
-            prompt += f" {arg} "
+            prompt += " "
         prompt += "[y/N] "
         if input(prompt).lower() not in ("y", "yes"):
             return False
@@ -313,9 +317,12 @@ class Manager:
             if target_path.resolve() == source_path:
                 return
             else:
-                raise RuntimeError(
-                    f"Link {target} already exists but points to {target_path.resolve()} instead of {source_path}"
-                )
+                if self._interactive_ask("Remove existing link", str(target_path), always=True):
+                    target_path.unlink(missing_ok=True)
+                else:
+                    raise RuntimeError(
+                        f"Link {target} already exists but points to {target_path.resolve()} instead of {source_path}"
+                    )
 
         if target_path.exists():
             raise RuntimeError(
@@ -665,8 +672,7 @@ def run_clean() -> None:
     print("The following files will be deleted:")
     for path in m._delete_later:
         print(f"  {path}")
-    answer = input("Are you sure? [y/N] ").lower()
-    if answer not in ('y', 'yes'):
+    if not m._interactive_ask("Delete the above files?", always=True):
         print("Clean cancelled.")
         return
     for path in m._delete_later:
