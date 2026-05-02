@@ -196,13 +196,18 @@ class Manager:
         print(f"{ANSI_YELLOW}{s}{ANSI_RESET}")
 
     def _interactive_ask(
-        self, action: str, arg: Optional[str] = None, *, always: bool = False
+        self, action: str, arg: Optional[str | list[str]] = None, *, always: bool = False
     ) -> bool:
         if not always and not self._interactive:
             return True
         prompt = f"{ANSI_YELLOW}{action}:{ANSI_RESET}"
         if arg is not None:
-            if "\n" in arg:
+            if isinstance(arg, list):
+                for item in arg:
+                    prompt += "\n- "
+                    prompt += item
+                prompt += "\n"
+            elif "\n" in arg:
                 prompt += f"\n{arg}\n"
             else:
                 prompt += f" {arg} "
@@ -501,11 +506,11 @@ class Manager:
             if newest_tag is not None and current_tag != newest_tag:
                 if current_tag is not None:
                     self.warn(
-                        f"Warning: current checked out tag {current_tag} is not the newest tag {newest_tag} for repo {source}"
+                        f"current checked out tag {current_tag} is not the newest tag {newest_tag} for repo {source}"
                     )
                 else:
                     self.warn(
-                        f"Warning: HEAD not at a tag; newest tag is {newest_tag} for repo {source}"
+                        f"HEAD not at a tag; newest tag is {newest_tag} for repo {source}"
                     )
 
     def dl_text(self, source: str) -> str:
@@ -547,11 +552,8 @@ def save_metadata() -> None:
     metadata = MetadataSchema(versions=versions, delete_later=m._delete_later)
     data = metadata.to_dict()
 
-    try:
-        with open(m._pkg_json_path, "w") as f:
-            json.dump(data, f, indent=4)
-    except Exception as e:
-        m.warn(f"Warning: failed to save version data: {e}")
+    with open(m._pkg_json_path, "w") as f:
+        json.dump(data, f, indent=4)
 
 
 #### Commands
@@ -590,7 +592,7 @@ def run_update(*, packages: List[str], tags: Optional[List[str]] = None) -> None
         try:
             pkg = m._packages[name]
         except KeyError:
-            print(f"Package '{name}' is not defined.")
+            m.warn(f"Package '{name}' is not defined.")
             continue
         if tags and not any(t in pkg.tags for t in tags):
             continue
@@ -598,11 +600,11 @@ def run_update(*, packages: List[str], tags: Optional[List[str]] = None) -> None
         if new_version is not None:
             old = pkg.cached_versions.cached
             pkg.cached_versions.cached = new_version
-            print(
+            m.log(
                 f"Updated cached version for package '{name}': {old} -> {new_version}"
             )
         else:
-            print(f"Package '{name}': no version information, skipping.")
+            m.warn(f"Package '{name}': no version information, skipping.")
 
     save_metadata()
 
@@ -669,21 +671,16 @@ def run_docs() -> None:
 def run_clean() -> None:
     """Delete all files from delete_later list after prompting user."""
     if not m._delete_later:
-        print("No files to clean.")
+        m.warn("No files to clean.")
         return
-    print("The following files will be deleted:")
-    for path in m._delete_later:
-        print(f"  {path}")
-    if not m._interactive_ask("Delete the above files?", always=True):
-        print("Clean cancelled.")
+    if not m._interactive_ask("Delete", m._delete_later, always=True):
         return
     for path in m._delete_later:
         if os.path.exists(path):
             os.remove(path)
-            print(f"Deleted {path}")
+            m.log(f"Deleted {path}")
     m._delete_later.clear()
     save_metadata()
-    print("Clean complete.")
 
 
 def run_edit(config_path: str) -> None:
@@ -773,13 +770,10 @@ def main() -> None:
     if args.config:
         m._skip_downloads = args.skip_downloads
         sub_globals = {"m": m}
-        try:
-            with open(args.config, "r") as f:
-                config_code = f.read()
-            exec(config_code, sub_globals)
-        except Exception as e:
-            print(f"Error executing config file: {e}", file=sys.stderr)
-            sys.exit(1)
+
+        with open(args.config, "r") as f:
+            config_code = f.read()
+        exec(config_code, sub_globals)
 
         # Load metadata after config is executed so packages are registered
         load_metadata()
