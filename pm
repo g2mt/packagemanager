@@ -19,6 +19,7 @@ import glob
 from pathlib import Path
 from typing import List, Optional, Callable, Dict
 from dataclasses import dataclass, asdict
+import stat  # added for chmod functionality
 
 #### Schemas
 
@@ -215,7 +216,11 @@ class Manager:
         """
         source = os.path.realpath(source)
 
-        if not os.path.isfile(source):
+        # Ensure the AppImage file is executable (chmod +x equivalent)
+        if os.path.isfile(source):
+            current_mode = os.stat(source).st_mode
+            os.chmod(source, current_mode | stat.S_IXUSR)
+        else:
             print(f"File not found: {source}", file=sys.stderr)
             return
 
