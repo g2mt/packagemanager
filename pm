@@ -127,7 +127,11 @@ class Package:
         assert m is not None
         package_dir = os.path.join(m.datadir, self.name)
         os.makedirs(package_dir, exist_ok=True)
-        if self.clean_before_install and len(os.listdir(package_dir)) > 0 and m._interactive_ask("Clean before install", package_dir):
+        if (
+            self.clean_before_install
+            and len(os.listdir(package_dir)) > 0
+            and m._interactive_ask("Clean before install", package_dir)
+        ):
             for entry in os.listdir(package_dir):
                 full_path = os.path.join(package_dir, entry)
                 if os.path.isdir(full_path):
@@ -319,7 +323,9 @@ class Manager:
 
         os.symlink(source_path, target_path)
 
-    def link_in_dir(self, target: str, source_dir: str, *, executables_only: bool = False):
+    def link_in_dir(
+        self, target: str, source_dir: str, *, executables_only: bool = False
+    ):
         """Create symlinks for all files in *source_dir* into *target* directory.
 
         If executables_only is True, only symlink entries that are executable
@@ -412,7 +418,9 @@ class Manager:
             return match.group(1)
         raise RuntimeError(f"tag {tag} does not match pattern /{re_pattern}/")
 
-    def dl(self, target: Optional[str], source: str, *, delete_later: Optional[bool] = None) -> str:
+    def dl(
+        self, target: Optional[str], source: str, *, delete_later: Optional[bool] = None
+    ) -> str:
         """Download file from *source* URL to *target* file (or a temp file if *target* is None) and optionally mark for later deletion."""
         if target is None:
             # Attempt to extract filename from the source URL
