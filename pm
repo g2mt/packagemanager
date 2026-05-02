@@ -545,13 +545,13 @@ def run_update(
 def run_list(m: Manager) -> None:
     for name in sorted(m._packages.keys()):
         pkg = m._packages[name]
-        current = pkg._get_current_version()
+        cached = pkg.cached_versions.cached
         installed = pkg.cached_versions.installed
-        ver_display = current if current is not None else "N/A"
+        ver_display = cached if cached is not None else "N/A"
         use_color = False
         color_on = ""
-        if installed is not None and current is not None:
-            if installed == current:
+        if installed is not None and cached is not None:
+            if installed == cached:
                 use_color = True
                 color_on = ANSI_GREEN
             else:
