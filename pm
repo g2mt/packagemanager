@@ -91,7 +91,7 @@ class Package:
         tags: Optional[List[str]] = None,
         readable_name: Optional[str] = None,
         version: Optional[Callable[["Package"], str] | str] = None,
-        clean_before_install: bool = False,
+        clean_before_install: bool = True,
     ) -> None:
         """Initialize Package.
 
@@ -104,7 +104,7 @@ class Package:
             version: Optional version string or callable returning version string.
             clean_before_install: If True, and the package installation directory is not empty,
                                   the user will be prompted to remove all existing contents before
-                                  calling the install function.
+                                  calling the install function. Defaults to True.
         """
         self.func = func
         self.name = name
