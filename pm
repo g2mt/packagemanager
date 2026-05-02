@@ -219,9 +219,10 @@ class Manager:
             print(f"File not found: {source}", file=sys.stderr)
             return
 
-        home = os.path.expanduser("~")
-        desktop_dir = os.path.join(home, ".local", "share", "applications")
-        icon_dir = os.path.join(home, ".local", "share", "icons")
+        desktop_dir = os.path.join(
+            os.path.expanduser("~"), ".local", "share", "applications"
+        )
+        icon_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "icons")
         desktop_path = os.path.join(desktop_dir, f"{pkg.name}.desktop")
 
         os.makedirs(desktop_dir, exist_ok=True)
