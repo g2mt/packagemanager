@@ -150,6 +150,7 @@ class Manager:
         self._package_versions: Dict[str, dict] = {}
         self._delete_later: List[str] = []
         self._interactive: bool = False
+        self._skip_downloads: bool = False
         self.datadir = CONFIG_PATH
 
     ### Public methods
@@ -399,6 +400,9 @@ class Manager:
             filename = os.path.basename(parsed.path) or uuid.uuid4().hex
             target = os.path.join(os.getcwd(), filename)
 
+        if self._skip_downloads:
+            return target
+
         self.run(["curl", "-C", "-", "-L", "-o", target, source])
         return target
 
@@ -629,6 +633,11 @@ def main() -> None:
         help="Path to the config file (e.g., config.py)",
         default=os.path.join(CONFIG_PATH, "config.py"),
     )
+    parser.add_argument(
+        "--skip-downloads",
+        action="store_true",
+        help="Skip any actual downloads (useful for testing)",
+    )
     subparsers = parser.add_subparsers(dest="subcommand")
 
     parser_install = subparsers.add_parser("install", help="Install given packages")
@@ -688,6 +697,7 @@ def main() -> None:
     if args.config:
         global m
         m = Manager()
+        m._skip_downloads = args.skip_downloads
         sub_globals = {"m": m}
         try:
             with open(args.config, "r") as f:
