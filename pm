@@ -617,14 +617,18 @@ def run_update(*, packages: List[str], tags: Optional[List[str]] = None) -> None
     save_metadata()
 
 
-def run_list(names_only: bool = False) -> None:
+def run_list(names_only: bool = False, filter_installed: Optional[bool] = None) -> None:
     for name in sorted(m._packages.keys()):
         pkg = m._packages[name]
+        installed = pkg.cached_versions.installed
+        if filter_installed is True and installed is None:
+            continue
+        if filter_installed is False and installed is not None:
+            continue
         if names_only:
             print(name)
             continue
         cached = pkg.cached_versions.cached
-        installed = pkg.cached_versions.installed
         ver_display = cached if cached is not None else "N/A"
         use_color = False
         color_on = ""
@@ -759,6 +763,17 @@ def main() -> None:
     )
 
     parser_list = subparsers.add_parser("list", help="List all packages with versions")
+    group = parser_list.add_mutually_exclusive_group()
+    group.add_argument(
+        "--installed",
+        action="store_true",
+        help="Only show installed packages",
+    )
+    group.add_argument(
+        "--not-installed",
+        action="store_true",
+        help="Only show packages that are not installed",
+    )
     parser_list.add_argument(
         "--names",
         action="store_true",
@@ -804,7 +819,12 @@ def main() -> None:
         elif args.subcommand == "update":
             run_update(packages=args.packages, tags=args.tags)
         elif args.subcommand == "list":
-            run_list(names_only=args.names)
+            filter_installed = None
+            if args.installed:
+                filter_installed = True
+            elif args.not_installed:
+                filter_installed = False
+            run_list(names_only=args.names, filter_installed=filter_installed)
         elif args.subcommand == "clean":
             run_clean()
         else:
