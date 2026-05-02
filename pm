@@ -400,13 +400,15 @@ class Manager:
             return match.group(1)
         raise RuntimeError(f"tag {tag} does not match pattern /{re_pattern}/")
 
-    def dl(self, target: Optional[str], source: str, *, delete_later: bool = False) -> str:
+    def dl(self, target: Optional[str], source: str, *, delete_later: Optional[bool] = None) -> str:
         """Download file from *source* URL to *target* file (or a temp file if *target* is None) and optionally mark for later deletion."""
         if target is None:
             # Attempt to extract filename from the source URL
             parsed = urlparse(source)
             filename = os.path.basename(parsed.path) or uuid.uuid4().hex
             target = os.path.join(os.getcwd(), filename)
+            if delete_later is None:
+                delete_later = True
 
         if self._skip_downloads:
             return target
