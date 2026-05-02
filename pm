@@ -118,7 +118,7 @@ class Package:
         old_cwd = os.getcwd()
         self.installing_version = self._get_current_version()
         try:
-            os.chdir(os.path.join(DATA_PATH, self.name))
+            os.chdir(os.path.join(CONFIG_PATH, self.name))
             self.func(self)
         finally:
             os.chdir(old_cwd)
@@ -137,7 +137,7 @@ class Package:
 
 class Manager:
     def __init__(self) -> None:
-        self._pkg_json_path = os.path.join(DATA_PATH, "pkg.json")
+        self._pkg_json_path = os.path.join(CONFIG_PATH, "pkg.json")
         self._packages: Dict[str, Package] = {}
         self._package_versions: Dict[str, dict] = {}
         self._delete_later: List[str] = []
