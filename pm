@@ -40,11 +40,7 @@ class CachedVersionsSchema:
 @dataclass
 class MetadataSchema:
     versions: Dict[str, CachedVersionsSchema]
-    delete_later: List[str] = None
-
-    def __post_init__(self):
-        if self.delete_later is None:
-            self.delete_later = []
+    delete_later: List[str]
 
     @classmethod
     def from_dict(cls, data: dict) -> "MetadataSchema":
@@ -178,7 +174,7 @@ class Manager:
     def package(self, **kwargs) -> Callable:
         """Register a decorator for a package with given *kwargs* (name, tags, version). See [Package.__init__]. The inner function will be called with the package on install."""
 
-        def decorator(func: Callable[[], None]) -> Callable[[], None]:
+        def decorator(func: Callable[[Package], None]) -> Callable[[Package], None]:
             pkg = Package(func, **kwargs)
             self._packages[pkg.name] = pkg
             data = self._package_versions.get(pkg.name)
@@ -217,10 +213,10 @@ class Manager:
 
     def run(
         self, args: list, *, interactive: bool = True, **kwargs
-    ) -> Optional[subprocess.CompletedProcess]:
+    ) -> subprocess.CompletedProcess:
         """Execute `*args`, `**kwargs` via `subprocess.run` and return the CompletedProcess."""
         if interactive and not self._interactive_ask("Run command", " ".join(args)):
-            return None
+            raise RuntimeError("User interrupted run command")
         self.log(" ".join(args))
         return subprocess.run(args, **kwargs)
 
@@ -228,7 +224,7 @@ class Manager:
         """Executes bash with the *bash_source*, returning the stdout. The *bash_source* is automatically dedented before the call."""
         bash_source = textwrap.dedent(bash_source).strip()
         if not self._interactive_ask("Run bash", bash_source):
-            return None
+            raise RuntimeError("User interrupted run command")
         self.log(bash_source)
         return subprocess.check_output(["bash", "-c", bash_source], **kwargs)
 
@@ -516,7 +512,7 @@ class Manager:
             return response.read().decode()
 
 
-m: Optional[Manager] = None
+m = Manager()
 
 #### Metadata
 
@@ -773,8 +769,6 @@ def main() -> None:
         return run_edit(args.config)
 
     if args.config:
-        global m
-        m = Manager()
         m._skip_downloads = args.skip_downloads
         sub_globals = {"m": m}
         try:
