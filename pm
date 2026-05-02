@@ -308,10 +308,16 @@ class Manager:
         os.symlink(source_path, target_path)
 
     def link_in_dir(self, target: str, source_dir: str, *, executables_only: bool = False):
-        """Create symlinks for all files in *source_dir* into *target* directory."""
+        """Create symlinks for all files in *source_dir* into *target* directory.
+
+        If executables_only is True, only symlink entries that are executable
+        (checked via os.access with os.X_OK).
+        """
         os.makedirs(target, exist_ok=True)
         for entry in os.listdir(source_dir):
             source_path = os.path.join(source_dir, entry)
+            if executables_only and not os.access(source_path, os.X_OK):
+                continue
             target_path = os.path.join(target, entry)
             self.link(target_path, source_path)
 
