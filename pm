@@ -459,7 +459,7 @@ class Manager:
             return target
 
         self.run(["curl", "-C", "-", "-L", "-o", target, source])
-        if delete_later:
+        if delete_later and target not in self._delete_later:
             self._delete_later.append(target)
         return target
 
