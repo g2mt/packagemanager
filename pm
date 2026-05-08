@@ -229,13 +229,19 @@ class Manager:
         self.log(" ".join(args))
         return subprocess.run(args, **kwargs)
 
-    def bash(self, bash_source: str, **kwargs) -> bytes:
-        """Executes bash with the *bash_source*, returning the stdout. The *bash_source* is automatically dedented before the call."""
+    def bash(self, bash_source: str, *, safe: bool = True, **kwargs) -> bytes:
+        """Executes bash with the *bash_source*, returning the stdout. The *bash_source* is automatically dedented before the call.
+
+        If *safe* is True (default), then bash will be run with the `-xe` flag."""
         bash_source = textwrap.dedent(bash_source).strip()
         if not self._interactive_ask("Run bash", bash_source):
             raise RuntimeError("User interrupted run command")
         self.log(bash_source)
-        return subprocess.check_output(["bash", "-c", bash_source], **kwargs)
+        args = ["bash"]
+        if safe:
+            args.append("-xe")
+        args += ["-c", bash_source]
+        return subprocess.check_output(args, **kwargs)
 
     #### Utils
 
