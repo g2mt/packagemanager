@@ -463,7 +463,7 @@ class Manager:
             self._delete_later.append(target)
         return target
 
-    def dl_git(self, target: str, source: str, tag: Optional[str] = None) -> None:
+    def dl_git(self, target: str, source: str, *, tag: Optional[str] = None) -> None:
         """Clone or update git repository in *source* URL into *target* directory and pull to latest commit.
 
         If *tag* is specified, the repository will be checked out at that tag.
