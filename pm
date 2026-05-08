@@ -463,15 +463,36 @@ class Manager:
             self._delete_later.append(target)
         return target
 
-    def dl_git(self, target: str, source: str) -> None:
-        """Clone or update git repository in *source* URL into *target* directory and pull to latest commit."""
+    def dl_git(self, target: str, source: str, tag: Optional[str] = None) -> None:
+        """Clone or update git repository in *source* URL into *target* directory and pull to latest commit.
+
+        If *tag* is specified, the repository will be checked out at that tag.
+        """
         if not os.path.exists(target):
             self.run(
                 ["git", "clone", "--filter=tree:0", source, target], interactive=False
             )
+            if tag is not None:
+                self.run(["git", "-C", target, "checkout", tag], interactive=False)
             return
         if not os.path.isdir(os.path.join(target, ".git")):
             raise RuntimeError(f"Target {target} exists but is not a git repository")
+        if tag is not None:
+            current_tag_proc = self.run(
+                ["git", "-C", target, "describe", "--tags", "--exact-match", "HEAD"],
+                capture_output=True,
+                text=True,
+                interactive=False,
+            )
+            current_tag = (
+                current_tag_proc.stdout.strip()
+                if current_tag_proc.returncode == 0
+                else None
+            )
+            if current_tag != tag:
+                self.run(["git", "-C", target, "fetch", "--tags"], interactive=False)
+                self.run(["git", "-C", target, "checkout", tag], interactive=False)
+            return
         branch_proc = self.run(
             ["git", "-C", target, "rev-parse", "--abbrev-ref", "HEAD"],
             capture_output=True,
