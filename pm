@@ -692,7 +692,7 @@ def run_docs() -> None:
         for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
             if method.__module__ != __name__:
                 continue
-            if name.startswith("_"):  # skip private methods
+            if name.startswith("_") and method not in (Package.__init__,):  # skip private methods
                 continue
             sig_str = str(inspect.signature(method))
             lines.append(f"  {name}{sig_str}")
