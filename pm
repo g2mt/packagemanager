@@ -347,9 +347,9 @@ class Manager:
         os.symlink(source_path, target_path)
 
     def link_in_dir(
-        self, target: str, source_dir: str, *, executables_only: bool = False
+        self, target: str, source_dir: str, *, executables_only: bool = False, prefix: str = "",
     ):
-        """Create symlinks for all files in *source_dir* into *target* directory.
+        """Create symlinks for all files in *source_dir* into *target* directory, with an optional *prefix*.
 
         If executables_only is True, only symlink entries that are executable
         (checked via os.access with os.X_OK).
@@ -359,7 +359,7 @@ class Manager:
             source_path = os.path.join(source_dir, entry)
             if executables_only and not os.access(source_path, os.X_OK):
                 continue
-            target_path = os.path.join(target, entry)
+            target_path = os.path.join(target, prefix+entry)
             self.link(target_path, source_path)
 
     #### Extract
