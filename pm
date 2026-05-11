@@ -88,6 +88,7 @@ class Package:
         readable_name: Optional[str] = None,
         version: Optional[Callable[["Package"], str] | str] = None,
         clean_before_install: bool = True,
+        create_pkg_dir: bool = True,
     ) -> None:
         """Initialize Package.
 
@@ -101,6 +102,9 @@ class Package:
             clean_before_install: If True, and the package installation directory is not empty,
                                   the user will be prompted to remove all existing contents before
                                   calling the install function. Defaults to True.
+            create_pkg_dir: If True, create the package directory and change into it before calling
+                            the install function. If False, change into ORIGINAL_WORKDIR without
+                            creating any directory. Defaults to True.
         """
         self.func = func
         self.name = name
@@ -110,6 +114,7 @@ class Package:
         self.cached_versions = CachedVersionsSchema()
         self._version_expr = version  # value or callable
         self.clean_before_install = clean_before_install
+        self.create_pkg_dir = create_pkg_dir
 
     def install(self, force: bool) -> None:
         """Install the package, optionally forcing reinstallation if *force* is True."""
@@ -120,25 +125,26 @@ class Package:
         ):
             return
         self.installing_version = self._get_current_version()
-        assert m is not None
         package_dir = os.path.join(m.datadir, self.name)
-        os.makedirs(package_dir, exist_ok=True)
-        if (
-            self.clean_before_install
-            and self.cached_versions.installed is not None
-            and len(os.listdir(package_dir)) > 0
-            and m._interactive_ask("Clean before install", package_dir)
-        ):
-            m.log(f"Cleaning {package_dir}")
-            for entry in os.listdir(package_dir):
-                full_path = os.path.join(package_dir, entry)
-                if os.path.isdir(full_path):
-                    shutil.rmtree(full_path)
-                else:
-                    os.remove(full_path)
+        if self.create_pkg_dir:
+            os.makedirs(package_dir, exist_ok=True)
+            if (
+                self.clean_before_install
+                and self.cached_versions.installed is not None
+                and len(os.listdir(package_dir)) > 0
+                and m._interactive_ask("Clean before install", package_dir)
+            ):
+                m.log(f"Cleaning {package_dir}")
+                for entry in os.listdir(package_dir):
+                    full_path = os.path.join(package_dir, entry)
+                    if os.path.isdir(full_path):
+                        shutil.rmtree(full_path)
+                    else:
+                        os.remove(full_path)
         try:
-            m.log(f"cd {package_dir}")
-            os.chdir(package_dir)
+            target = package_dir if self.create_pkg_dir else ORIGINAL_WORKDIR
+            m.log(f"cd {target}")
+            os.chdir(target)
             self.func(self)
         finally:
             os.chdir(ORIGINAL_WORKDIR)
