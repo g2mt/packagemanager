@@ -585,6 +585,7 @@ class Manager:
 
 
 m = Manager()
+builtins.m = m
 
 #### Metadata
 
@@ -870,15 +871,11 @@ def main() -> None:
     config_dir = str(config_path.parent)
     sys.path.insert(0, config_dir)
     try:
-        builtins.m = m
-        config_spec = importlib.util.spec_from_file_location(
-            "config", str(config_path)
-        )
+        config_spec = importlib.util.spec_from_file_location("config", str(config_path))
         config_mod = importlib.util.module_from_spec(config_spec)
         sys.modules["config"] = config_mod
         config_spec.loader.exec_module(config_mod)
     finally:
-        delattr(builtins, "m")
         sys.path.remove(config_dir)
 
     # Load metadata after config is executed so packages are registered
