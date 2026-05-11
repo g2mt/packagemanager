@@ -86,6 +86,7 @@ class Package:
         func: Callable[["Package"], None],
         *,
         name: str,
+        enabled: bool = True,
         tags: Optional[List[str]] = None,
         readable_name: Optional[str] = None,
         version: Optional[Callable[["Package"], str] | str] = None,
@@ -98,6 +99,7 @@ class Package:
             func: A callable that will be invoked when the package is installed.
                   It receives the Package instance.
             name: The package name, used for directory lookup and metadata.
+            enabled: If False, then this package will be ignored
             tags: Optional list of tags for filtering packages.
             readable_name: Optional human-readable name; defaults to *name* if not provided.
             version: Optional version string or callable returning version string.
@@ -108,6 +110,7 @@ class Package:
                             the install function. If False, change into ORIGINAL_WORKDIR without
                             creating any directory. Defaults to True.
         """
+        assert enabled # should be handled in Manager.package
         self.func = func
         self.name = name
         self.tags: List[str] = tags if tags is not None else []
@@ -182,6 +185,11 @@ class Manager:
 
     def package(self, **kwargs) -> Callable:
         """Register a decorator for a package with given *kwargs* (name, tags, version). See [Package.__init__]. The inner function will be called with the package on install."""
+
+        if not kwargs.get("enabled", True):
+            def noop(func: Callable[[Package], None]) -> None:
+                return None
+            return noop
 
         def decorator(func: Callable[[Package], None]) -> Callable[[Package], None]:
             pkg = Package(func, **kwargs)
