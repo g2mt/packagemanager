@@ -19,7 +19,7 @@ import shutil
 import tempfile
 import glob
 from pathlib import Path
-from typing import List, Optional, Callable, Dict
+from typing import List, Optional, Callable, Dict, Literal
 from dataclasses import dataclass, asdict
 import stat
 
@@ -28,7 +28,7 @@ import stat
 
 @dataclass
 class CachedVersionsSchema:
-    installed: Optional[str] = None
+    installed: Optional[str | Literal[True]] = None # True if installing a "rolling-release" program. In this case installed != cached is always true.
     cached: Optional[str] = None
 
     @classmethod
@@ -78,7 +78,7 @@ class Package:
     name: str
     tags: List[str]
     readable_name: Optional[str]
-    installing_version: Optional[str]
+    installing_version: Optional[str | Literal[True]] # True if installing a "rolling-release" program
     cached_versions: CachedVersionsSchema
 
     def __init__(
@@ -130,6 +130,8 @@ class Package:
         ):
             return
         self.installing_version = self._get_current_version()
+        if self.installing_version is None:
+            self.installing_version = True
         package_dir = os.path.join(m.datadir, self.name)
         if self.create_pkg_dir:
             os.makedirs(package_dir, exist_ok=True)
@@ -155,7 +157,10 @@ class Package:
         finally:
             m._current_package = None
             os.chdir(ORIGINAL_WORKDIR)
-        if self.installing_version is not None:
+        if self.installing_version is True:
+            self.cached_versions.installed = True
+            self.cached_versions.cached = None
+        elif self.installing_version is not None:
             self.cached_versions.installed = self.installing_version
             self.cached_versions.cached = self.installing_version
 
@@ -344,7 +349,7 @@ class Manager:
 
     #### Filesystem operations
 
-    def write(self, target: str, output: Union[str, bytes]):
+    def write(self, target: str, output: str | bytes):
         """Write the *output* to the *target* file."""
         with open(target, "w" + ("b" if isinstance(output, bytes) else "")) as f:
             f.write(output)
@@ -705,6 +710,9 @@ def run_list(names_only: bool = False, filter_installed: Optional[bool] = None) 
             else:
                 use_color = True
                 color_on = ANSI_YELLOW
+        elif installed is True:
+            use_color = True
+            color_on = ANSI_YELLOW
         colored = f"{color_on}{name} {ver_display}" + (ANSI_RESET if use_color else "")
         tag_part = ""
         if pkg.tags:
