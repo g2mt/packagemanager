@@ -326,12 +326,12 @@ class Manager:
                 Icon={icon_dst}
                 Type=Application
                 Terminal=false""")
-            with open(desktop_path, "w") as f:
-                f.write(desktop_content)
+            self.write(desktop_path, desktop_content)
 
     #### Filesystem operations
 
     def write(self, target: str, output: Union[str, bytes]):
+        """Write the *output* to the *target* file."""
         with open(target, "w" + ("b" if isinstance(output, bytes) else "")) as f:
             f.write(output)
 
