@@ -145,8 +145,10 @@ class Package:
             target = package_dir if self.create_pkg_dir else ORIGINAL_WORKDIR
             m.log(f"cd {target}")
             os.chdir(target)
+            m._current_package = self
             self.func(self)
         finally:
+            m._current_package = None
             os.chdir(ORIGINAL_WORKDIR)
         if self.installing_version is not None:
             self.cached_versions.installed = self.installing_version
@@ -166,14 +168,13 @@ class Manager:
 
     def __init__(self) -> None:
         self._pkg_json_path = os.path.join(CONFIG_PATH, "pkg.json")
+        self._current_package: Optional[Package] = None
         self._packages: Dict[str, Package] = {}
         self._package_versions: Dict[str, dict] = {}
         self._delete_later: List[str] = []
         self._interactive: bool = False
         self._skip_downloads: bool = False
         self.datadir = CONFIG_PATH
-
-    ### Public methods
 
     #### Definitions
 
@@ -251,10 +252,13 @@ class Manager:
 
     #### Utils
 
-    def install_appimage(self, pkg: Package, source: str) -> None:
+    def install_appimage(self, source: str) -> None:
         """
         Install an AppImage package from *source* file. The AppImage is extracted and a .desktop entry is created.
         """
+        pkg = self._current_package
+        if pkg is None:
+            raise RuntimeError("No current package set")
         source = os.path.realpath(source)
 
         if os.path.isfile(source):
@@ -326,6 +330,10 @@ class Manager:
                 f.write(desktop_content)
 
     #### Filesystem operations
+
+    def write(self, target: str, output: Union[str, bytes]):
+        with open(target, "w" + ("b" if isinstance(output, bytes) else "")) as f:
+            f.write(output)
 
     def link(self, target: str, source: str):
         """Create a symbolic link from *source* file to *target* file."""
