@@ -29,6 +29,7 @@ complete -c pm -n '__fish_seen_subcommand_from install' -s i -l interactive -d '
 # update options
 complete -c pm -n '__fish_seen_subcommand_from update' -a '(__pm_packages)' -d 'Package'
 complete -c pm -n '__fish_seen_subcommand_from update' -s t -l tag -d 'Filter by tag' -r
+complete -c pm -n '__fish_seen_subcommand_from update' -l installed -d 'Only update installed packages'
 
 # list options
 complete -c pm -n '__fish_seen_subcommand_from list' -l installed -d 'Only show installed packages'

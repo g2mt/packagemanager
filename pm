@@ -28,7 +28,9 @@ import stat
 
 @dataclass
 class CachedVersionsSchema:
-    installed: Optional[str | Literal[True]] = None # True if installing a "rolling-release" program. In this case installed != cached is always true.
+    installed: Optional[str | Literal[True]] = (
+        None  # True if installing a "rolling-release" program. In this case installed != cached is always true.
+    )
     cached: Optional[str] = None
 
     @classmethod
@@ -78,7 +80,9 @@ class Package:
     name: str
     tags: List[str]
     readable_name: Optional[str]
-    installing_version: Optional[str | Literal[True]] # True if installing a "rolling-release" program
+    installing_version: Optional[
+        str | Literal[True]
+    ]  # True if installing a "rolling-release" program
     cached_versions: CachedVersionsSchema
 
     def __init__(
@@ -110,7 +114,7 @@ class Package:
                             the install function. If False, change into ORIGINAL_WORKDIR without
                             creating any directory. Defaults to True.
         """
-        assert enabled # should be handled in Manager.package
+        assert enabled  # should be handled in Manager.package
         self.func = func
         self.name = name
         self.tags: List[str] = tags if tags is not None else []
@@ -192,8 +196,10 @@ class Manager:
         """Register a decorator for a package with given *kwargs* (name, tags, version). See [Package.__init__]. The inner function will be called with the package on install."""
 
         if not kwargs.get("enabled", True):
+
             def noop(func: Callable[[Package], None]) -> None:
                 return None
+
             return noop
 
         def decorator(func: Callable[[Package], None]) -> Callable[[Package], None]:
@@ -664,7 +670,12 @@ def run_install(
     save_metadata()
 
 
-def run_update(*, packages: List[str], tags: Optional[List[str]] = None) -> None:
+def run_update(
+    *,
+    packages: List[str],
+    tags: Optional[List[str]] = None,
+    filter_installed: bool = False,
+) -> None:
     target_names = packages if packages else m._packages.keys()
 
     for name in target_names:
@@ -674,6 +685,8 @@ def run_update(*, packages: List[str], tags: Optional[List[str]] = None) -> None
             m.warn(f"Package '{name}' is not defined.")
             continue
         if tags and not any(t in pkg.tags for t in tags):
+            continue
+        if filter_installed and pkg.cached_versions.installed is None:
             continue
         new_version = pkg._get_current_version()
         if new_version is not None:
@@ -837,6 +850,11 @@ def main() -> None:
         dest="tags",
         help="Filter by tag (may be specified multiple times)",
     )
+    parser_update.add_argument(
+        "--installed",
+        action="store_true",
+        help="Only update packages that are currently installed",
+    )
 
     parser_list = subparsers.add_parser("list", help="List all packages with versions")
     group = parser_list.add_mutually_exclusive_group()
@@ -905,7 +923,9 @@ def main() -> None:
             interactive=args.interactive,
         )
     elif args.subcommand == "update":
-        run_update(packages=args.packages, tags=args.tags)
+        run_update(
+            packages=args.packages, tags=args.tags, filter_installed=args.installed
+        )
     elif args.subcommand == "list":
         filter_installed = None
         if args.installed:
