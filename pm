@@ -829,7 +829,7 @@ def main() -> None:
         m._skip_downloads = args.skip_downloads
         sub_globals = {"m": m}
 
-        config_dir = str(Path(args).resolve().parent)
+        config_dir = str(Path(args.config).resolve().parent)
         sys.path.insert(0, config_dir)
         with open(args.config, "r") as f:
             config_code = f.read()
