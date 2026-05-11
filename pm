@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import builtins
 import argparse
 import textwrap
 import re
@@ -10,6 +11,7 @@ import tarfile
 import sys
 import uuid
 import pydoc
+import importlib.util
 import inspect
 import urllib.request
 from urllib.parse import urlparse
@@ -203,7 +205,11 @@ class Manager:
         print(f"{ANSI_YELLOW}{s}{ANSI_RESET}")
 
     def _interactive_ask(
-        self, action: str, arg: Optional[str | list[str]] = None, *, always: bool = False
+        self,
+        action: str,
+        arg: Optional[str | list[str]] = None,
+        *,
+        always: bool = False,
     ) -> bool:
         if not always and not self._interactive:
             return True
@@ -361,7 +367,12 @@ class Manager:
         os.symlink(source_path, target_path)
 
     def link_in_dir(
-        self, target: str, source_dir: str, *, executables_only: bool = False, prefix: str = "",
+        self,
+        target: str,
+        source_dir: str,
+        *,
+        executables_only: bool = False,
+        prefix: str = "",
     ):
         """Create symlinks for all files in *source_dir* into *target* directory, with an optional *prefix*.
 
@@ -373,7 +384,7 @@ class Manager:
             source_path = os.path.join(source_dir, entry)
             if executables_only and not os.access(source_path, os.X_OK):
                 continue
-            target_path = os.path.join(target, prefix+entry)
+            target_path = os.path.join(target, prefix + entry)
             self.link(target_path, source_path)
 
     #### Extract
@@ -412,7 +423,10 @@ class Manager:
                     tmp_top_level = os.path.join(tmp, top_level)
                     for item in os.listdir(tmp_top_level):
                         # manually move toplevel/* to target/*
-                        shutil.move(os.path.join(tmp_top_level, item), os.path.join(target, item))
+                        shutil.move(
+                            os.path.join(tmp_top_level, item),
+                            os.path.join(target, item),
+                        )
             else:
                 os.makedirs(target, exist_ok=True)
                 tar.extractall(target)
@@ -429,7 +443,9 @@ class Manager:
                 os.makedirs(target, exist_ok=True)
                 for item in os.listdir(tmp_top_level):
                     # manually move toplevel/* to target/*
-                    shutil.move(os.path.join(tmp_top_level, item), os.path.join(target, item))
+                    shutil.move(
+                        os.path.join(tmp_top_level, item), os.path.join(target, item)
+                    )
             else:
                 # Multiple top-level entries or a single file: extract into target
                 os.makedirs(target, exist_ok=True)
@@ -712,7 +728,9 @@ def run_docs() -> None:
         for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
             if method.__module__ != __name__:
                 continue
-            if name.startswith("_") and method not in (Package.__init__,):  # skip private methods
+            if name.startswith("_") and method not in (
+                Package.__init__,
+            ):  # skip private methods
                 continue
             sig_str = str(inspect.signature(method))
             lines.append(f"  {name}{sig_str}")
@@ -839,49 +857,57 @@ def main() -> None:
     elif args.subcommand == "edit":
         return run_edit(args.config)
 
-    if args.config:
-        m._skip_downloads = args.skip_downloads
-        sub_globals = {"m": m}
-
-        config_dir = str(Path(args.config).resolve().parent)
-        sys.path.insert(0, config_dir)
-        with open(args.config, "r") as f:
-            config_code = f.read()
-        exec(config_code, sub_globals)
-        sys.path.remove(config_dir)
-
-        # Load metadata after config is executed so packages are registered
-        load_metadata()
-
-        if args.subcommand == "install":
-            run_install(
-                packages=args.packages,
-                tags=args.tags,
-                force=args.force,
-                interactive=args.interactive,
-            )
-        elif args.subcommand == "update":
-            run_update(packages=args.packages, tags=args.tags)
-        elif args.subcommand == "list":
-            filter_installed = None
-            if args.installed:
-                filter_installed = True
-            elif args.not_installed:
-                filter_installed = False
-            run_list(names_only=args.names, filter_installed=filter_installed)
-        elif args.subcommand == "clean":
-            run_clean()
-        else:
-            if args.subcommand is None:
-                print("No subcommand specified.", file=sys.stderr)
-            else:
-                print(f"Unknown subcommand: {args.subcommand}", file=sys.stderr)
-            sys.exit(1)
-    else:
+    if not args.config:
         print(
             "No config file provided. Use --config <file> to specify one.",
             file=sys.stderr,
         )
+        os.exit(1)
+
+    m._skip_downloads = args.skip_downloads
+
+    config_path = Path(args.config).resolve()
+    config_dir = str(config_path.parent)
+    sys.path.insert(0, config_dir)
+    try:
+        builtins.m = m
+        config_spec = importlib.util.spec_from_file_location(
+            "config", str(config_path)
+        )
+        config_mod = importlib.util.module_from_spec(config_spec)
+        sys.modules["config"] = config_mod
+        config_spec.loader.exec_module(config_mod)
+    finally:
+        delattr(builtins, "m")
+        sys.path.remove(config_dir)
+
+    # Load metadata after config is executed so packages are registered
+    load_metadata()
+
+    if args.subcommand == "install":
+        run_install(
+            packages=args.packages,
+            tags=args.tags,
+            force=args.force,
+            interactive=args.interactive,
+        )
+    elif args.subcommand == "update":
+        run_update(packages=args.packages, tags=args.tags)
+    elif args.subcommand == "list":
+        filter_installed = None
+        if args.installed:
+            filter_installed = True
+        elif args.not_installed:
+            filter_installed = False
+        run_list(names_only=args.names, filter_installed=filter_installed)
+    elif args.subcommand == "clean":
+        run_clean()
+    else:
+        if args.subcommand is None:
+            print("No subcommand specified.", file=sys.stderr)
+        else:
+            print(f"Unknown subcommand: {args.subcommand}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
