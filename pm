@@ -19,7 +19,7 @@ import glob
 from pathlib import Path
 from typing import List, Optional, Callable, Dict
 from dataclasses import dataclass, asdict
-import stat  # added for chmod functionality
+import stat
 
 #### Schemas
 
@@ -829,9 +829,12 @@ def main() -> None:
         m._skip_downloads = args.skip_downloads
         sub_globals = {"m": m}
 
+        config_dir = str(Path(args).resolve().parent)
+        sys.path.insert(0, config_dir)
         with open(args.config, "r") as f:
             config_code = f.read()
         exec(config_code, sub_globals)
+        sys.path.remove(config_dir)
 
         # Load metadata after config is executed so packages are registered
         load_metadata()
