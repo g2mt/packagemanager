@@ -1,28 +1,29 @@
 #!/usr/bin/env python3
 
-import builtins
-import argparse
-import textwrap
-import re
-import json
-import os
-import subprocess
-import tarfile
-import sys
-import traceback
-import uuid
-import pydoc
-import importlib.util
-import inspect
-import urllib.request
-from urllib.parse import urlparse
-import shutil
-import tempfile
-import glob
+from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import List, Optional, Callable, Dict, Literal
-from dataclasses import dataclass, asdict
+from urllib.parse import urlparse
+
+import argparse
+import builtins
+import glob
+import importlib.util
+import inspect
+import json
+import os
+import pydoc
+import re
+import shutil
 import stat
+import subprocess
+import sys
+import tarfile
+import tempfile
+import textwrap
+import traceback
+import urllib.request
+import uuid
 
 #### Schemas
 
@@ -138,7 +139,11 @@ class Package:
             self.installing_version = self._get_current_version()
         except Exception as e:
             traceback.print_exc()
-            if m._interactive_ask("Failed to get current version, use older cached version?", self.cached_versions.cached, always=True):
+            if m._interactive_ask(
+                "Failed to get current version, use older cached version?",
+                self.cached_versions.cached,
+                always=True,
+            ):
                 self.installing_version = self.cached_versions.cached
             else:
                 raise RuntimeError("Failed to install: cannot get current version")
@@ -679,7 +684,6 @@ def run_install(
             continue
         pkg.install(force=force)
         save_metadata()
-
 
 
 def run_update(
