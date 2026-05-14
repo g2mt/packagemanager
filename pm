@@ -34,10 +34,15 @@ class CachedVersionsSchema:
         None  # True if installing a "rolling-release" program. In this case installed != cached is always true.
     )
     cached: Optional[str] = None
+    installed_files: List[str] = None
+
+    def __post_init__(self):
+        if self.installed_files is None:
+            self.installed_files = []
 
     @classmethod
     def from_dict(cls, data: dict) -> "CachedVersionsSchema":
-        return cls(installed=data.get("installed"), cached=data.get("cached"))
+        return cls(installed=data.get("installed"), cached=data.get("cached"), installed_files=data.get("installed_files", []))
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -170,6 +175,7 @@ class Package:
             m.log(f"cd {target}")
             os.chdir(target)
             m._current_package = self
+            self.cached_versions.installed_files = []
             self.func(self)
         finally:
             m._current_package = None
@@ -359,6 +365,7 @@ class Manager:
             icon_ext = os.path.splitext(icon_src)[1]  # e.g. .png
             icon_dst = os.path.join(icon_dir, f"{pkg.name}{icon_ext}")
             shutil.copy2(icon_src, icon_dst)
+            pkg.cached_versions.installed_files.append(icon_dst)
 
             desktop_content = textwrap.dedent(f"""
                 [Desktop Entry]
@@ -369,6 +376,7 @@ class Manager:
                 Type=Application
                 Terminal=false""")
             self.write(desktop_path, desktop_content)
+            pkg.cached_versions.installed_files.append(desktop_path)
 
     #### Filesystem operations
 
@@ -376,6 +384,8 @@ class Manager:
         """Write the *output* to the *target* file."""
         with open(target, "w" + ("b" if isinstance(output, bytes) else "")) as f:
             f.write(output)
+        if self._current_package:
+            self._current_package.cached_versions.installed_files.append(os.path.abspath(target))
 
     def link(self, target: str, source: str):
         """Create a symbolic link from *source* file to *target* file."""
@@ -401,6 +411,8 @@ class Manager:
             )
 
         os.symlink(source_path, target_path)
+        if self._current_package:
+            self._current_package.cached_versions.installed_files.append(os.path.abspath(target))
 
     def link_in_dir(
         self,
@@ -493,9 +505,15 @@ class Manager:
         if not self._interactive_ask("Extract", f"{source} to {target}"):
             return None
         if tarfile.is_tarfile(source):
-            return self._extract_tar(target, source)
+            result = self._extract_tar(target, source)
         else:
-            return self._extract_nontar(target, source)
+            result = self._extract_nontar(target, source)
+        if self._current_package:
+            target_norm = os.path.normpath(target)
+            for root, dirs, files in os.walk(target_norm):
+                for f in files:
+                    self._current_package.cached_versions.installed_files.append(os.path.join(root, f))
+        return result
 
     #### Downloads
 
@@ -519,6 +537,7 @@ class Manager:
         self, target: Optional[str], source: str, *, delete_later: Optional[bool] = None
     ) -> str:
         """Download file from *source* URL to *target* file (or a temp file if *target* is None) and optionally mark for later deletion."""
+        is_temporary = target is None
         if target is None:
             # Attempt to extract filename from the source URL
             parsed = urlparse(source)
@@ -533,6 +552,8 @@ class Manager:
         self.run(["curl", "-C", "-", "-L", "-o", target, source])
         if delete_later and target not in self._delete_later:
             self._delete_later.append(target)
+        if not is_temporary and self._current_package:
+            self._current_package.cached_versions.installed_files.append(os.path.abspath(target))
         return target
 
     def dl_git(self, target: str, source: str, *, tag: Optional[str] = None) -> None:
