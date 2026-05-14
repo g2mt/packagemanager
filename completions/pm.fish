@@ -3,22 +3,22 @@
 # Disable file completions for the main command
 complete -c pm -f
 
-# Global options
-complete -c pm -l config -d 'Path to the config file' -r
-complete -c pm -l skip-downloads -d 'Skip any actual downloads'
-
-# Subcommands
-complete -c pm -n '__fish_use_subcommand' -a install -d 'Install given packages'
-complete -c pm -n '__fish_use_subcommand' -a update -d 'Update cached versions of packages'
-complete -c pm -n '__fish_use_subcommand' -a list -d 'List all packages with versions'
-complete -c pm -n '__fish_use_subcommand' -a docs -d 'Show documentation for Package and Manager classes'
-complete -c pm -n '__fish_use_subcommand' -a clean -d 'Delete all files marked for deletion'
-complete -c pm -n '__fish_use_subcommand' -a edit -d 'Open the config file in $EDITOR'
-
 # Helper to get package names from `pm list --names`
 function __pm_packages
     pm list --names 2>/dev/null
 end
+
+# Global options (also available before subcommand)
+complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit' -l config -d 'Path to the config file' -r
+complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit' -l skip-downloads -d 'Skip any actual downloads'
+
+# Subcommands
+complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit' -a install -d 'Install given packages'
+complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit' -a update -d 'Update cached versions of packages'
+complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit' -a list -d 'List all packages with versions'
+complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit' -a docs -d 'Show documentation for Package and Manager classes'
+complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit' -a clean -d 'Delete all files marked for deletion'
+complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit' -a edit -d 'Open the config file in $EDITOR'
 
 # install options
 complete -c pm -n '__fish_seen_subcommand_from install' -a '(__pm_packages)' -d 'Package'
