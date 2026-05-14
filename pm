@@ -666,8 +666,8 @@ def run_install(
         if tags and not any(t in pkg.tags for t in tags):
             continue
         pkg.install(force=force)
+        save_metadata()
 
-    save_metadata()
 
 
 def run_update(
