@@ -9,6 +9,7 @@ import os
 import subprocess
 import tarfile
 import sys
+import traceback
 import uuid
 import pydoc
 import importlib.util
@@ -133,7 +134,14 @@ class Package:
             and self.cached_versions.installed == self.cached_versions.cached
         ):
             return
-        self.installing_version = self._get_current_version()
+        try:
+            self.installing_version = self._get_current_version()
+        except Exception as e:
+            traceback.print_exc()
+            if m._interactive_ask("Failed to get current version, use older cached version?", self.cached_versions.cached, always=True):
+                self.installing_version = self.cached_versions.cached
+            else:
+                raise RuntimeError("Failed to install: cannot get current version")
         if self.installing_version is None:
             self.installing_version = True
         package_dir = os.path.join(m.datadir, self.name)
@@ -222,6 +230,10 @@ class Manager:
     def warn(self, s: str):
         """Print *s* to stdout in yellow."""
         print(f"{ANSI_YELLOW}{s}{ANSI_RESET}")
+
+    def info(self, s: str):
+        """Print *s* to stdout in yellow."""
+        print(f"{ANSI_GREEN}{s}{ANSI_RESET}")
 
     def _interactive_ask(
         self,
@@ -688,12 +700,13 @@ def run_update(
             continue
         if filter_installed and pkg.cached_versions.installed is None:
             continue
-        new_version = pkg._get_current_version()
-        if new_version is not None:
-            old = pkg.cached_versions.cached
-            pkg.cached_versions.cached = new_version
-            m.log(
-                f"Updated cached version for package '{name}': {old} -> {new_version}"
+        new_ver = pkg._get_current_version()
+        if new_ver is not None:
+            old_ver = pkg.cached_versions.cached
+            pkg.cached_versions.cached = new_ver
+            display_fn = m.log if new_ver == old_ver else m.info
+            display_fn(
+                f"Updated cached version for package '{name}': {old_ver} -> {new_ver}"
             )
         else:
             m.warn(f"Package '{name}': no version information, skipping.")
