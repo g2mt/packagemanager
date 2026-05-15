@@ -672,7 +672,7 @@ def save_metadata() -> None:
     for name, pkg in m._packages.items():
         versions[name] = pkg.cached_versions
 
-    metadata = MetadataSchema(versions=versions, delete_later=m._delete_later)
+    metadata = MetadataSchema(versions=versions, delete_later=list(set(m._delete_later)))
     data = metadata.to_dict()
 
     with open(m._pkg_json_path, "w") as f:
@@ -680,6 +680,12 @@ def save_metadata() -> None:
 
 
 #### Commands
+
+
+def run_edit(config_path: str) -> None:
+    """Open the config file in $EDITOR."""
+    editor = os.environ.get("EDITOR", "vi")
+    subprocess.call([editor, config_path])
 
 
 def run_install(
@@ -824,11 +830,6 @@ def run_clean() -> None:
     m._delete_later.clear()
     save_metadata()
 
-
-def run_edit(config_path: str) -> None:
-    """Open the config file in $EDITOR."""
-    editor = os.environ.get("EDITOR", "vi")
-    subprocess.call([editor, config_path])
 
 
 def main() -> None:
