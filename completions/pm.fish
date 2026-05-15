@@ -43,3 +43,4 @@ complete -c pm -n '__fish_seen_subcommand_from list-files' -a '(__pm_packages)' 
 
 # uninstall options
 complete -c pm -n '__fish_seen_subcommand_from uninstall' -a '(__pm_packages)' -d 'Package'
+complete -c pm -n '__fish_seen_subcommand_from uninstall' -s f -l force -d 'Force uninstall without prompting'

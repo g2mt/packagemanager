@@ -13,6 +13,7 @@ _pm() {
     local install_opts="-t --tag -f --force -i --interactive"
     local update_opts="-t --tag --installed"
     local list_opts="--installed --not-installed --names"
+    local uninstall_opts="-f --force"
 
     if [[ $cword -eq 1 ]]; then
         if [[ "$cur" == -* ]]; then
@@ -52,8 +53,11 @@ _pm() {
             ;;
         docs|clean|edit|list-files|uninstall)
             case "$prev_subcmd" in
-                list-files|uninstall)
+                list-files)
                     COMPREPLY=($(compgen -W "$(__pm_packages)" -- "$cur"))
+                    ;;
+                uninstall)
+                    COMPREPLY=($(compgen -W "$uninstall_opts $(__pm_packages)" -- "$cur"))
                     ;;
                 *)
                     COMPREPLY=()
