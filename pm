@@ -377,7 +377,6 @@ class Manager:
                 Type=Application
                 Terminal=false""")
             self.write(desktop_path, desktop_content)
-            pkg.cached_versions.installed_files.append(desktop_path)
 
     #### Filesystem operations
 
