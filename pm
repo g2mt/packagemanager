@@ -832,6 +832,48 @@ def run_clean() -> None:
     save_metadata()
 
 
+def run_list_files(packages: List[str]) -> None:
+    """List all installed files for the specified packages."""
+    for name in packages:
+        if name not in m._packages:
+            print(f"Error: Package '{name}' is not defined.", file=sys.stderr)
+            continue
+        pkg = m._packages[name]
+        files = pkg.cached_versions.installed_files
+        if not files:
+            continue
+        for f in files:
+            print(f)
+
+
+def run_uninstall(packages: List[str]) -> None:
+    """Remove all installed files and the package directory for a package."""
+    for name in packages:
+        if name not in m._packages:
+            print(f"Error: Package '{name}' is not defined.", file=sys.stderr)
+            continue
+        pkg = m._packages[name]
+        files = list(pkg.cached_versions.installed_files)
+        if not files:
+            m.warn(f"No installed files recorded for '{name}'.")
+        else:
+            if not m._interactive_ask(f"Delete installed files for '{name}'", files, always=True):
+                continue
+            for f in files:
+                if os.path.exists(f):
+                    os.remove(f)
+                    m.log(f"Deleted {f}")
+                else:
+                    m.log(f"Skipped (not found) {f}")
+        pkg_dir = os.path.join(CONFIG_PATH, name)
+        if os.path.isdir(pkg_dir):
+            if m._interactive_ask(f"Remove package directory for '{name}'", pkg_dir, always=True):
+                shutil.rmtree(pkg_dir)
+                m.log(f"Removed {pkg_dir}")
+        pkg.cached_versions.installed = None
+        pkg.cached_versions.installed_files = []
+        save_metadata()
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -924,6 +966,24 @@ def main() -> None:
 
     parser_edit = subparsers.add_parser("edit", help="Open the config file in $EDITOR")
 
+    parser_list_files = subparsers.add_parser(
+        "list-files", help="List installed files for given packages"
+    )
+    parser_list_files.add_argument(
+        "packages",
+        nargs="+",
+        help="Names of packages to list files for",
+    )
+
+    parser_uninstall = subparsers.add_parser(
+        "uninstall", help="Remove all installed files and package directory"
+    )
+    parser_uninstall.add_argument(
+        "packages",
+        nargs="+",
+        help="Names of packages to uninstall",
+    )
+
     args = parser.parse_args()
 
     # Handle subcommands not requiring a config file.
@@ -975,6 +1035,10 @@ def main() -> None:
         run_list(names_only=args.names, filter_installed=filter_installed)
     elif args.subcommand == "clean":
         run_clean()
+    elif args.subcommand == "list-files":
+        run_list_files(args.packages)
+    elif args.subcommand == "uninstall":
+        run_uninstall(args.packages)
     else:
         if args.subcommand is None:
             print("No subcommand specified.", file=sys.stderr)

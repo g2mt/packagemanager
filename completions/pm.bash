@@ -8,7 +8,7 @@ _pm() {
     local cur prev words cword
     _init_completion || return
 
-    local subcommands="install update list docs clean edit"
+    local subcommands="install update list docs clean edit list-files uninstall"
     local global_opts="--config --skip-downloads"
     local install_opts="-t --tag -f --force -i --interactive"
     local update_opts="-t --tag --installed"
@@ -50,8 +50,15 @@ _pm() {
         list)
             COMPREPLY=($(compgen -W "$list_opts" -- "$cur"))
             ;;
-        docs|clean|edit)
-            COMPREPLY=()
+        docs|clean|edit|list-files|uninstall)
+            case "$prev_subcmd" in
+                list-files|uninstall)
+                    COMPREPLY=($(compgen -W "$(__pm_packages)" -- "$cur"))
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
             ;;
         *)
             COMPREPLY=($(compgen -W "$global_opts $subcommands" -- "$cur"))
