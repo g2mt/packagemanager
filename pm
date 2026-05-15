@@ -372,7 +372,7 @@ class Manager:
                 [Desktop Entry]
                 Name={pkg.readable_name}
                 StartupWMClass={pkg.readable_name}
-                Exec="{source}"
+                Exec={source}
                 Icon={icon_dst}
                 Type=Application
                 Terminal=false""")
