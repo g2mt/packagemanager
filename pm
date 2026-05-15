@@ -697,16 +697,14 @@ def run_install(
     interactive: bool = False,
 ) -> None:
     if not packages and not tags:
-        print("Error: No packages or tags specified.", file=sys.stderr)
-        return
+        raise RuntimeError("No packages or tags specified.")
 
     target_names = list(m._packages.keys()) if not packages and tags else packages
     m._interactive = interactive
 
     for name in target_names:
         if name not in m._packages:
-            print(f"Error: Package '{name}' is not defined.", file=sys.stderr)
-            continue
+            raise RuntimeError(f"Package '{name}' is not defined.")
         pkg = m._packages[name]
         if tags and not any(t in pkg.tags for t in tags):
             continue
@@ -836,8 +834,7 @@ def run_list_files(packages: List[str]) -> None:
     """List all installed files for the specified packages."""
     for name in packages:
         if name not in m._packages:
-            print(f"Error: Package '{name}' is not defined.", file=sys.stderr)
-            continue
+            raise RuntimeError(f"Package '{name}' is not defined.")
         pkg = m._packages[name]
         files = pkg.cached_versions.installed_files
         if not files:
@@ -850,8 +847,7 @@ def run_uninstall(packages: List[str]) -> None:
     """Remove all installed files and the package directory for a package."""
     for name in packages:
         if name not in m._packages:
-            print(f"Error: Package '{name}' is not defined.", file=sys.stderr)
-            continue
+            raise RuntimeError(f"Package '{name}' is not defined.")
         pkg = m._packages[name]
         files = list(pkg.cached_versions.installed_files)
         if not files:
