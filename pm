@@ -132,7 +132,7 @@ class Package:
         self.clean_before_install = clean_before_install
         self.create_pkg_dir = create_pkg_dir
 
-    def install(self, force: bool) -> None:
+    def install(self, force: bool = False) -> None:
         """Install the package, optionally forcing reinstallation if *force* is True."""
         if (
             not force
@@ -194,6 +194,22 @@ class Package:
         if callable(self._version_expr):
             return self._version_expr(self)
         return self._version_expr
+
+    def uninstall(self, force: bool = False) -> None:
+        """Remove installed files and, if *create_pkg_dir* is True, the package directory."""
+        files = self.cached_versions.installed_files
+        if self.create_pkg_dir:
+            pkg_dir = os.path.join(m.datadir, self.name)
+            files.append(pkg_dir)
+        if not m._interactive_ask(
+            f"Delete installed files for '{self.name}'", files, always=force
+        ):
+            return
+        for f in self.cached_versions.installed_files:
+            if os.path.exists(f):
+                shutil.rmtree(pkg_dir)
+        self.cached_versions.installed = None
+        self.cached_versions.installed_files = []
 
 
 class Manager:
@@ -842,31 +858,13 @@ def run_list_files(packages: List[str]) -> None:
             print(f)
 
 
-def run_uninstall(packages: List[str]) -> None:
+def run_uninstall(packages: List[str], *, force: bool = False) -> None:
     """Remove all installed files and the package directory for a package."""
     for name in packages:
         if name not in m._packages:
             raise RuntimeError(f"Package '{name}' is not defined.")
         pkg = m._packages[name]
-        files = list(pkg.cached_versions.installed_files)
-        if not files:
-            m.warn(f"No installed files recorded for '{name}'.")
-        else:
-            if not m._interactive_ask(f"Delete installed files for '{name}'", files, always=True):
-                continue
-            for f in files:
-                if os.path.exists(f):
-                    os.remove(f)
-                    m.log(f"Deleted {f}")
-                else:
-                    m.log(f"Skipped (not found) {f}")
-        pkg_dir = os.path.join(CONFIG_PATH, name)
-        if os.path.isdir(pkg_dir):
-            if m._interactive_ask(f"Remove package directory for '{name}'", pkg_dir, always=True):
-                shutil.rmtree(pkg_dir)
-                m.log(f"Removed {pkg_dir}")
-        pkg.cached_versions.installed = None
-        pkg.cached_versions.installed_files = []
+        pkg.uninstall(force=force)
         save_metadata()
 
 
@@ -978,6 +976,12 @@ def main() -> None:
         nargs="+",
         help="Names of packages to uninstall",
     )
+    parser_uninstall.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Force uninstall without prompting",
+    )
 
     args = parser.parse_args()
 
@@ -1033,7 +1037,7 @@ def main() -> None:
     elif args.subcommand == "list-files":
         run_list_files(args.packages)
     elif args.subcommand == "uninstall":
-        run_uninstall(args.packages)
+        run_uninstall(args.packages, force=args.force)
     else:
         if args.subcommand is None:
             print("No subcommand specified.", file=sys.stderr)
