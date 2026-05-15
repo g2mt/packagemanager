@@ -323,6 +323,7 @@ class Manager:
         os.makedirs(icon_dir, exist_ok=True)
 
         with tempfile.TemporaryDirectory() as tmp:
+            os.chmod(source, 0o755)
             self.run(
                 [source, "--appimage-extract"],
                 cwd=tmp,
@@ -367,7 +368,7 @@ class Manager:
             shutil.copy2(icon_src, icon_dst)
             pkg.cached_versions.installed_files.append(icon_dst)
 
-            desktop_content = textwrap.dedent(f"""
+            desktop_content = textwrap.dedent(f"""\
                 [Desktop Entry]
                 Name={pkg.readable_name}
                 StartupWMClass={pkg.readable_name}
