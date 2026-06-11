@@ -705,10 +705,14 @@ def _pm_install(pkg: Package) -> None:
 def _pm_completions_install(pkg: Package) -> None:
     """Install shell completions for pm."""
     completions_dir = os.path.join(PM_DIR, "completions")
-    fish_dest = os.path.expanduser("~/.config/fish/completions/pm.fish")
-    m.link(fish_dest, os.path.join(completions_dir, "pm.fish"))
-    bash_dest = os.path.expanduser("~/.bash-completion/pm")
-    m.link(bash_dest, os.path.join(completions_dir, "pm.bash"))
+
+    fish_dir = os.path.expanduser("~/.config/fish/completions")
+    if os.path.isdir(fish_dir):
+        m.link(os.path.join(fish_dir, "pm.fish"), os.path.join(completions_dir, "pm.fish"))
+
+    bash_dir = os.path.expanduser("~/.bash-completion")
+    if os.path.isdir(bash_dir):
+        m.link(os.path.join(bash_dir, "pm"), os.path.join(completions_dir, "pm.bash"))
 
 #### Metadata
 
