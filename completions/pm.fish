@@ -10,7 +10,7 @@ end
 
 # Global options (also available before subcommand)
 complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit list-files uninstall' -l config -d 'Path to the config file' -r
-complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit list-files uninstall' -l skip-downloads -d 'Skip any actual downloads'
+
 
 # Subcommands
 complete -c pm -n 'not __fish_seen_subcommand_from install update list docs clean edit list-files uninstall' -a install -d 'Install given packages'
@@ -27,6 +27,8 @@ complete -c pm -n '__fish_seen_subcommand_from install' -a '(__pm_packages)' -d 
 complete -c pm -n '__fish_seen_subcommand_from install' -s t -l tag -d 'Filter by tag' -r
 complete -c pm -n '__fish_seen_subcommand_from install' -s f -l force -d 'Force reinstall even if version unchanged'
 complete -c pm -n '__fish_seen_subcommand_from install' -s i -l interactive -d 'Prompt before executing any process during install'
+complete -c pm -n '__fish_seen_subcommand_from install' -l skip-downloads -d 'Skip any actual downloads'
+complete -c pm -n '__fish_seen_subcommand_from install' -l skip-clean -d 'Skip cleaning package directory before install'
 
 # update options
 complete -c pm -n '__fish_seen_subcommand_from update' -a '(__pm_packages)' -d 'Package'

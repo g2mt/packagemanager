@@ -9,8 +9,8 @@ _pm() {
     _init_completion || return
 
     local subcommands="install update list docs clean edit list-files uninstall"
-    local global_opts="--config --skip-downloads"
-    local install_opts="-t --tag -f --force -i --interactive"
+    local global_opts="--config"
+    local install_opts="-t --tag -f --force -i --interactive --skip-downloads --skip-clean"
     local update_opts="-t --tag --installed"
     local list_opts="--installed --not-installed --names"
     local uninstall_opts="-f --force"
