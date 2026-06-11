@@ -501,7 +501,7 @@ class Manager:
                         top_level_is_dir = True
                     else:
                         top_level_is_dir = False
-                elif top_level != m_top_level:  # multiple top level paths
+                elif top_level != m_parts[0]:  # multiple top level paths
                     top_level = None
                     break
 
