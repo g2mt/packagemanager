@@ -87,6 +87,7 @@ class Package:
     name: str
     tags: List[str]
     readable_name: Optional[str]
+    requires: Optional[List[str]]
     installing_version: Optional[
         str | Literal[True]
     ]  # True if installing a "rolling-release" program
@@ -101,6 +102,7 @@ class Package:
         tags: Optional[List[str]] = None,
         readable_name: Optional[str] = None,
         version: Optional[Callable[["Package"], str] | str] = None,
+        requires: Optional[List[str]] = None,
         clean_before_install: bool = True,
         create_pkg_dir: bool = True,
     ) -> None:
@@ -114,6 +116,7 @@ class Package:
             tags: Optional list of tags for filtering packages.
             readable_name: Optional human-readable name; defaults to *name* if not provided.
             version: Optional version string or callable returning version string.
+            requires: Optional list of package names that this package depends on.
             clean_before_install: If True, and the package installation directory is not empty,
                                   the user will be prompted to remove all existing contents before
                                   calling the install function. Defaults to True.
@@ -126,6 +129,7 @@ class Package:
         self.name = name
         self.tags: List[str] = tags if tags is not None else []
         self.readable_name = readable_name if readable_name is not None else name
+        self.requires: Optional[List[str]] = requires
         self.installing_version = None
         self.cached_versions = CachedVersionsSchema()
         self._version_expr = version  # value or callable
@@ -317,6 +321,27 @@ class Manager:
         return subprocess.check_output(args, **kwargs)
 
     #### Utils
+
+    def _resolve_deps(self, names: List[str]) -> List[str]:
+        """DFS to resolve all dependencies for the given package *names*, returning a topologically ordered list with duplicates removed."""
+        visited: set[str] = set()
+        result: List[str] = []
+
+        def dfs(name: str) -> None:
+            if name in visited:
+                return
+            if name not in self._packages:
+                raise RuntimeError(f"Dependency '{name}' is not defined.")
+            visited.add(name)
+            pkg = self._packages[name]
+            if pkg.requires:
+                for dep in pkg.requires:
+                    dfs(dep)
+            result.append(name)
+
+        for name in names:
+            dfs(name)
+        return result
 
     def install_appimage(self, source: str) -> None:
         """
@@ -721,9 +746,14 @@ def run_install(
     target_names = list(m._packages.keys()) if not packages and tags else packages
     m._interactive = interactive
 
+    # Validate all requested names exist before resolving deps
     for name in target_names:
         if name not in m._packages:
             raise RuntimeError(f"Package '{name}' is not defined.")
+
+    resolved = m._resolve_deps(target_names)
+
+    for name in resolved:
         pkg = m._packages[name]
         if tags and not any(t in pkg.tags for t in tags):
             continue
@@ -737,14 +767,20 @@ def run_update(
     tags: Optional[List[str]] = None,
     filter_installed: bool = False,
 ) -> None:
-    target_names = packages if packages else m._packages.keys()
+    target_names = list(packages if packages else m._packages.keys())
 
+    # Validate all requested names exist before resolving deps
     for name in target_names:
-        try:
-            pkg = m._packages[name]
-        except KeyError:
+        if name not in m._packages:
             m.warn(f"Package '{name}' is not defined.")
-            continue
+    target_names = [n for n in target_names if n in m._packages]
+    if not target_names:
+        return
+
+    resolved = m._resolve_deps(target_names)
+
+    for name in resolved:
+        pkg = m._packages[name]
         if tags and not any(t in pkg.tags for t in tags):
             continue
         if filter_installed and pkg.cached_versions.installed is None:
