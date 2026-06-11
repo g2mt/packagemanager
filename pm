@@ -693,7 +693,7 @@ builtins.m = m
 
 PM_DIR = os.path.dirname(os.path.abspath(__file__))
 
-@m.package(name="pm", tags=["builtin"], clean_before_install=False, create_pkg_dir=False)
+@m.package(name="pm", tags=["builtin"], version="0", clean_before_install=False, create_pkg_dir=False)
 def _pm_install(pkg: Package) -> None:
     """Install pm itself to ~/.local/bin."""
     source = os.path.join(PM_DIR, "pm")
@@ -701,7 +701,7 @@ def _pm_install(pkg: Package) -> None:
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     m.link(dest, source)
 
-@m.package(name="pm-completions", tags=["builtin"], requires=["pm"], clean_before_install=False, create_pkg_dir=False)
+@m.package(name="pm-completions", tags=["builtin"], version="0", requires=["pm"], clean_before_install=False, create_pkg_dir=False)
 def _pm_completions_install(pkg: Package) -> None:
     """Install shell completions for pm."""
     completions_dir = os.path.join(PM_DIR, "completions")
