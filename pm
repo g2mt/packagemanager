@@ -159,6 +159,7 @@ class Package:
             os.makedirs(package_dir, exist_ok=True)
             if (
                 self.clean_before_install
+                and not m._skip_clean
                 and self.cached_versions.installed is not None
                 and len(os.listdir(package_dir)) > 0
                 and m._interactive_ask("Clean before install", package_dir)
@@ -223,6 +224,7 @@ class Manager:
         self._delete_later: List[str] = []
         self._interactive: bool = False
         self._skip_downloads: bool = False
+        self._skip_clean: bool = False
         self.datadir = CONFIG_PATH
 
     #### Definitions
@@ -879,11 +881,7 @@ def main() -> None:
         help="Path to the config file (e.g., config.py)",
         default=os.path.join(CONFIG_PATH, "config.py"),
     )
-    parser.add_argument(
-        "--skip-downloads",
-        action="store_true",
-        help="Skip any actual downloads (useful for testing)",
-    )
+
     subparsers = parser.add_subparsers(dest="subcommand")
 
     parser_install = subparsers.add_parser("install", help="Install given packages")
@@ -910,6 +908,16 @@ def main() -> None:
         "--interactive",
         action="store_true",
         help="Prompt before executing any process during install",
+    )
+    parser_install.add_argument(
+        "--skip-downloads",
+        action="store_true",
+        help="Skip any actual downloads (useful for testing)",
+    )
+    parser_install.add_argument(
+        "--skip-clean",
+        action="store_true",
+        help="Skip cleaning package directory before install",
     )
 
     parser_update = subparsers.add_parser(
@@ -1000,7 +1008,8 @@ def main() -> None:
         )
         os.exit(1)
 
-    m._skip_downloads = args.skip_downloads
+    m._skip_downloads = getattr(args, "skip_downloads", False)
+    m._skip_clean = getattr(args, "skip_clean", False)
 
     config_path = Path(args.config).resolve()
     config_dir = str(config_path.parent)
