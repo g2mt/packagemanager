@@ -463,15 +463,17 @@ class Manager:
                 m_parts = Path(m.name).parts
                 if len(m_parts) == 0:
                     continue
-                m_top_level = m_parts[0]
                 if top_level is None:
-                    top_level = m_top_level
                     if m.isdir():
                         # is dir when the top level directory itself is the name
+                        top_level = m_parts[0]
                         top_level_is_dir = len(m_parts) == 1
-                    else:
-                        # always dir if member is a non directory
+                    elif len(m_parts) > 1:
+                        # always dir if member is a non directory in a top level dir (i.e. ./file)
+                        top_level = m_parts[0]
                         top_level_is_dir = True
+                    else:
+                        top_level_is_dir = False
                 elif top_level != m_top_level:  # multiple top level paths
                     top_level = None
                     break
