@@ -76,7 +76,10 @@ ANSI_GRAY = "\033[90m"
 ANSI_GREEN = "\033[92m"
 ANSI_YELLOW = "\033[93m"
 
-ORIGINAL_WORKDIR = os.getcwd()
+try:
+    ORIGINAL_WORKDIR = os.getcwd()
+except FileNotFoundError:
+    ORIGINAL_WORKDIR = os.path.expanduser("~")
 CONFIG_PATH = os.path.expanduser("~/.config/pm")
 
 #### Manager objects
