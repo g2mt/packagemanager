@@ -44,4 +44,7 @@ def install_hello(pkg):
 
 ## License
 
-MIT
+MIT License.
+
+AI-Disclosure: ai-generated.
+
