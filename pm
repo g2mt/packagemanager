@@ -766,12 +766,16 @@ def run_install(
     packages: List[str],
     tags: Optional[List[str]] = None,
     force: bool = False,
+    upgrade: bool = False,
     interactive: bool = False,
 ) -> None:
-    if not packages and not tags:
+    if not packages and not tags and not upgrade:
         raise RuntimeError("No packages or tags specified.")
 
-    target_names = list(m._packages.keys()) if not packages and tags else packages
+    if upgrade or (not packages and tags):
+        target_names = list(m._packages.keys())
+    else:
+        target_names = packages
     m._interactive = interactive
 
     # Validate all requested names exist before resolving deps
@@ -785,7 +789,14 @@ def run_install(
         pkg = m._packages[name]
         if tags and not any(t in pkg.tags for t in tags):
             continue
-        pkg.install(force=force)
+        if upgrade:
+            installed = pkg.cached_versions.installed
+            cached = pkg.cached_versions.cached
+            if installed is None or cached is None or installed == cached:
+                continue  # not installed, or no version info, or already up to date
+            pkg.install(force=True)
+        else:
+            pkg.install(force=force)
         save_metadata()
 
 
@@ -968,6 +979,12 @@ def main() -> None:
         help="Force reinstall even if version unchanged",
     )
     parser_install.add_argument(
+        "-u",
+        "--upgrade",
+        action="store_true",
+        help="Reinstall all installed packages with an outdated version",
+    )
+    parser_install.add_argument(
         "-i",
         "--interactive",
         action="store_true",
@@ -1094,6 +1111,7 @@ def main() -> None:
             packages=args.packages,
             tags=args.tags,
             force=args.force,
+            upgrade=args.upgrade,
             interactive=args.interactive,
         )
     elif args.subcommand == "update":
