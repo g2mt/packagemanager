@@ -436,7 +436,7 @@ class Manager:
     def link(self, target: str, source: str):
         """Create a symbolic link from *source* file to *target* file."""
         target_path = Path(target)
-        source_path = Path(source).absolute()
+        source_path = Path(source).absolute().resolve()
 
         if target_path.is_symlink():
             if target_path.resolve() == source_path:
