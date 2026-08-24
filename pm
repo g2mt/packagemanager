@@ -768,9 +768,15 @@ def run_install(
     force: bool = False,
     upgrade: bool = False,
     interactive: bool = False,
+    force_version: Optional[str] = None,
 ) -> None:
     if not packages and not tags and not upgrade:
         raise RuntimeError("No packages or tags specified.")
+    if force_version is not None:
+        if len(packages) != 1:
+            raise RuntimeError("--force-version requires exactly one package.")
+        if upgrade:
+            raise RuntimeError("--force-version cannot be combined with --upgrade.")
 
     if upgrade or (not packages and tags):
         target_names = list(m._packages.keys())
@@ -796,7 +802,9 @@ def run_install(
                 continue  # not installed, or no version info, or already up to date
             pkg.install(force=True)
         else:
-            pkg.install(force=force)
+            if force_version is not None and name in packages:
+                pkg._version_expr = force_version
+            pkg.install(force=(force or force_version is not None))
         save_metadata()
 
 
@@ -1000,6 +1008,11 @@ def main() -> None:
         action="store_true",
         help="Skip cleaning package directory before install",
     )
+    parser_install.add_argument(
+        "--force-version",
+        metavar="VERSION",
+        help="Force install a single package at the given version, overriding the source version",
+    )
 
     parser_update = subparsers.add_parser(
         "update", help="Update cached versions of packages"
@@ -1113,6 +1126,7 @@ def main() -> None:
             force=args.force,
             upgrade=args.upgrade,
             interactive=args.interactive,
+            force_version=args.force_version,
         )
     elif args.subcommand == "update":
         run_update(

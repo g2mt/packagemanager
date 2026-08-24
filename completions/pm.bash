@@ -10,7 +10,7 @@ _pm() {
 
     local subcommands="install update list docs clean edit list-files uninstall"
     local global_opts="--config"
-    local install_opts="-t --tag -f --force -i --interactive -u --upgrade --skip-downloads --skip-clean"
+    local install_opts="-t --tag -f --force -i --interactive -u --upgrade --skip-downloads --skip-clean --force-version"
     local update_opts="-t --tag --installed"
     local list_opts="--installed --not-installed --names"
     local uninstall_opts="-f --force"

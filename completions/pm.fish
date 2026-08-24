@@ -30,6 +30,7 @@ complete -c pm -n '__fish_seen_subcommand_from install' -s i -l interactive -d '
 complete -c pm -n '__fish_seen_subcommand_from install' -s u -l upgrade -d 'Reinstall all installed packages with an outdated version'
 complete -c pm -n '__fish_seen_subcommand_from install' -l skip-downloads -d 'Skip any actual downloads'
 complete -c pm -n '__fish_seen_subcommand_from install' -l skip-clean -d 'Skip cleaning package directory before install'
+complete -c pm -n '__fish_seen_subcommand_from install' -l force-version -r -d 'Force install a single package at a given version'
 
 # update options
 complete -c pm -n '__fish_seen_subcommand_from update' -a '(__pm_packages)' -d 'Package'
